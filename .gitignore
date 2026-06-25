@@ -1,0 +1,16 @@
+venv/
+.env
+.env.local
+__pycache__/
+*.pyc
+.pytest_cache/
+_jd.txt
+_assignment.txt
+*.egg-info/
+.DS_Store
+data/feedback_memory.json
+*.log
+
+# IDE
+.idea/
+.vscode/

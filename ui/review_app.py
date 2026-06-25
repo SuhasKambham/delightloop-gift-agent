@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import json
 
-API_URL = "https://delightloop-gift-agent.onrender.com""
+API_URL = "https://delightloop-gift-agent.onrender.com"
 
 st.set_page_config(
     page_title="DelightLoop Gift Agent",

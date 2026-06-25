@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import json
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "API_URL = "https://delightloop-gift-agent.onrender.com""
 
 st.set_page_config(
     page_title="DelightLoop Gift Agent",

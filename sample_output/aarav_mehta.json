@@ -1,15 +1,13 @@
 {
-  "_note": "Representative output from a successful workflow run. Regenerate with: python test_schema.py",
+  "_note": "Representative output shape. Regenerate locally with: python test_schema.py",
   "contact_name": "Aarav Mehta",
   "profile_signals": {
     "strong_signals": [
       "Interested in cricket (recent posts and comments)",
-      "Works in SaaS sales leadership (VP Sales, GTM)",
-      "Engages with revenue leadership and team building content"
+      "Works in SaaS sales leadership (VP Sales, GTM)"
     ],
     "weak_signals": [
-      "May appreciate executive gift hampers or leadership-themed items",
-      "Premium coffee or gourmet hampers as universal corporate gifts"
+      "May appreciate executive gift hampers or leadership-themed items"
     ],
     "signals_to_avoid": [
       "Do not infer religion, politics, health, family status, or ethnicity"
@@ -18,8 +16,6 @@
   "search_trace": {
     "queries_used": [
       "premium cricket gift hamper India 3000 to 5000 INR",
-      "cricket memorabilia luxury gift box India 5000 rupees",
-      "executive leadership gift hamper India 3000 to 5000 rupees",
       "luxury gift hamper under 5000 rupees Amazon India"
     ],
     "products_considered_count": 28,
@@ -32,44 +28,12 @@
       "product_url": "https://www.amazon.in/s?k=personalised+cricket+bat+gift",
       "store": "amazon.in",
       "estimated_price": "₹2,900",
-      "why_this_gift": "Directly ties to Aarav's visible cricket passion from LinkedIn posts and comments, within budget.",
-      "personalisation_reasoning": "Strong signal: cricket posts ('India vs Australia match') and comment ('Cricket teaches leadership').",
-      "personalised_message": "Aarav — still thinking about your India vs Australia post. Hope this miniature bat is a fun nod to the leadership lessons you find on the pitch. Thanks again for the discovery call last week.",
+      "why_this_gift": "Ties to visible cricket passion from LinkedIn posts, within budget.",
+      "personalisation_reasoning": "Strong signal: cricket posts and India vs Australia match comment.",
+      "personalised_message": "Aarav — still thinking about your India vs Australia post. Hope this miniature bat is a fun nod to the leadership lessons you find on the pitch.",
       "confidence_score": 0.88,
       "risk_level": "low",
-      "assumptions": [
-        "Cricket interest inferred from recent posts and engaged topics"
-      ]
-    },
-    {
-      "rank": 2,
-      "gift_name": "Signed Cricket Memorabilia Bat",
-      "product_url": "https://www.amazon.in/s?k=signed+cricket+bat+gift",
-      "store": "amazon.in",
-      "estimated_price": "₹3,200",
-      "why_this_gift": "Premium cricket memorabilia suited to a VP-level thank-you gift.",
-      "personalisation_reasoning": "Cricket is the strongest personal signal; professional relationship allows sports memorabilia.",
-      "personalised_message": "Your comment about cricket and leadership stuck with me — this felt like the right way to say thank you after our call.",
-      "confidence_score": 0.82,
-      "risk_level": "low",
-      "assumptions": [
-        "Sports memorabilia is appropriate for prospective customer relationship"
-      ]
-    },
-    {
-      "rank": 3,
-      "gift_name": "Premium Gourmet Coffee & Dry Fruits Hamper",
-      "product_url": "https://www.amazon.in/s?k=premium+coffee+hamper+gift",
-      "store": "Amazon.in",
-      "estimated_price": "₹3,573",
-      "why_this_gift": "Safe executive fallback when personal signals are strong but product search for niche items is limited.",
-      "personalisation_reasoning": "Universal corporate gift; supports nurture goal after positive discovery call.",
-      "personalised_message": "Looking forward to continuing our conversation on GTM and scaling — enjoy this in the meantime.",
-      "confidence_score": 0.68,
-      "risk_level": "medium",
-      "assumptions": [
-        "Gourmet hamper is professionally appropriate for VP Sales contact"
-      ]
+      "assumptions": ["Cricket interest inferred from recent posts"]
     }
   ],
   "human_review": {

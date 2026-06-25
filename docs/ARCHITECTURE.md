@@ -4,9 +4,9 @@ Companion to [README.md](../README.md). Submission artifact for DelightLoop assi
 
 ## System context
 
-The Gift Agent sits between **enriched contact data** (LinkedIn-style profiles) and **human reviewers** who approve gifts before sending. It is not a chatbot — it is a **stateful, multi-step workflow** with deterministic guardrails.
+The Gift Agent sits between **enriched contact data** (LinkedIn-style profiles) and **human reviewers** who approve gifts before sending. It is a **stateful, multi-step workflow** with deterministic guardrails — not a single LLM prompt.
 
-## Component responsibilities
+## Component diagram
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -25,23 +25,25 @@ The Gift Agent sits between **enriched contact data** (LinkedIn-style profiles) 
 
 ## State management
 
-- **Workflow state:** `GraphState` TypedDict passed between LangGraph nodes
-- **Session state:** in-memory `results_store` keyed by `run_id` (API layer)
-- **Persistent learning:** `data/feedback_memory.json` keyed by contact name + company
+| Store | Scope | Persistence |
+|-------|-------|-------------|
+| `GraphState` | Single workflow run | In-memory during invoke |
+| `results_store` | API run results by `run_id` | In-memory (lost on restart) |
+| `feedback_memory.json` | Reviewer notes per contact | Disk (`data/`, gitignored) |
 
 ## Failure handling
 
 | Failure | Response |
 |---------|----------|
 | SerpAPI error | Empty products; retry with alternate queries |
-| < 3 validated products | Conditional loop to search (max 2 retries) |
-| LLM JSON parse error | Retry once; fallback deterministic ranking |
+| < 3 validated products | Conditional loop back to search (max 2 retries) |
+| LLM JSON parse error | Retry once; deterministic fallback ranking |
 | No products at all | Empty recommendations + error in `errors[]` |
-| Weak profile signals | Lower confidence scores; assumptions listed |
+| Weak profile signals | Lower confidence; explicit assumptions listed |
 
 ## Extension points
 
-- Swap `get_llm()` for OpenAI/Anthropic
-- Replace SerpAPI with Amazon Product API
-- Add Postgres checkpointing via LangGraph checkpointer
-- Add approval webhook to CRM
+- Swap `get_llm()` for OpenAI / Anthropic
+- Replace SerpAPI with Amazon Product Advertising API
+- Add LangGraph Postgres checkpointer for durable workflow state
+- Webhook on approve → CRM integration

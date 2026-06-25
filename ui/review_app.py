@@ -1,17 +1,14 @@
 import streamlit as st
+import requests
 import json
-from ui.client import recommend, review, _direct_mode, api_base_url
+
+API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
     page_title="DelightLoop Gift Agent",
     page_icon="🎁",
     layout="wide"
 )
-
-if _direct_mode():
-    st.sidebar.caption("Mode: **Direct** (in-process workflow)")
-else:
-    st.sidebar.caption(f"Mode: **API** → `{api_base_url()}`")
 
 st.title("🎁 DelightLoop — Gift Recommendation Agent")
 st.markdown("AI-powered personalised gift recommendations with human review")
@@ -89,7 +86,11 @@ if contact_data:
     if st.button("🚀 Generate Gift Recommendations", type="primary"):
         with st.spinner("Running AI workflow... this takes ~30 seconds"):
             try:
-                result = recommend(contact_data)
+                response = requests.post(
+                    f"{API_URL}/recommend",
+                    json=contact_data
+                )
+                result = response.json()
                 st.session_state["result"] = result
                 st.session_state["run_id"] = result["run_id"]
             except Exception as e:
@@ -195,14 +196,14 @@ if "result" in st.session_state:
 
         with col1:
             if st.button("✅ Approve", type="primary"):
-                review(run_id, "approve")
+                requests.post(f"{API_URL}/review/{run_id}?action=approve")
                 st.session_state["result"]["human_review"]["status"] = "approved"
                 st.success("Recommendations approved!")
                 st.rerun()
 
         with col2:
             if st.button("❌ Reject"):
-                review(run_id, "reject", notes=notes or None)
+                requests.post(f"{API_URL}/review/{run_id}?action=reject")
                 st.session_state["result"]["human_review"]["status"] = "rejected"
                 st.error("Recommendations rejected")
                 st.rerun()
@@ -210,14 +211,20 @@ if "result" in st.session_state:
         with col3:
             if st.button("🔄 Regenerate"):
                 with st.spinner("Regenerating with your feedback..."):
-                    new_result = review(run_id, "regenerate", notes=notes or None)
+                    params = {"action": "regenerate"}
+                    if notes:
+                        params["notes"] = notes
+                    r = requests.post(f"{API_URL}/review/{run_id}", params=params)
+                    new_result = r.json()
                     st.session_state["result"] = new_result
                     st.success("Regenerated!")
                     st.rerun()
 
         with col4:
             if st.button("💾 Save Notes") and notes:
-                review(run_id, "edit", notes=notes)
+                requests.post(
+                    f"{API_URL}/review/{run_id}?action=edit&notes={notes}"
+                )
                 st.session_state["result"]["human_review"]["reviewer_notes"] = notes
                 st.success("Notes saved!")
 

@@ -1,29 +1,62 @@
 # DelightLoop — Hyper-Personalised Gift Recommendation Agent
 
-AI-powered, multi-step gift recommendation workflow for B2B contacts. Built for the **DelightLoop Founding AI Engineer** assignment.
-
-Takes enriched LinkedIn-style contact data → extracts safe gifting signals → searches real products on the web → validates budget and appropriateness → ranks top 3 gifts with personalised messages → supports human review with a learning feedback loop.
+> **Assignment submission** for the DelightLoop Founding AI Engineer role.  
+> An AI workflow that turns enriched professional contact data into **reviewable, grounded, personalised gift recommendations** with real product links.
 
 ---
 
 ## Table of Contents
 
-1. [Quick Start](#quick-start)
-2. [Environment Variables](#environment-variables)
-3. [Project Structure](#project-structure)
-4. [Architecture Overview](#architecture-overview)
-5. [Workflow Deep Dive](#workflow-deep-dive)
-6. [API Reference](#api-reference)
-7. [Streamlit UI](#streamlit-ui)
-8. [Human Review & Learning Loop](#human-review--learning-loop)
-9. [Observability (LangSmith)](#observability-langsmith)
-10. [Quality & Evaluation](#quality--evaluation)
-11. [Testing](#testing)
-12. [Deployment](#deployment)
-    - [GitHub](#github)
-    - [Hugging Face Spaces](#hugging-face-spaces)
-13. [Tradeoffs & Future Improvements](#tradeoffs--future-improvements)
-14. [Assignment Checklist](#assignment-checklist)
+1. [Problem Statement](#problem-statement)
+2. [What This Project Does](#what-this-project-does)
+3. [Quick Start](#quick-start)
+4. [Environment Variables](#environment-variables)
+5. [Project Structure](#project-structure)
+6. [Architecture Overview](#architecture-overview)
+7. [Workflow Deep Dive (LangGraph)](#workflow-deep-dive-langgraph)
+8. [AI vs Deterministic Logic](#ai-vs-deterministic-logic)
+9. [API Reference](#api-reference)
+10. [Streamlit Review UI](#streamlit-review-ui)
+11. [Human Review & Learning Loop](#human-review--learning-loop)
+12. [Observability (LangSmith)](#observability-langsmith)
+13. [Quality & Evaluation](#quality--evaluation)
+14. [Testing](#testing)
+15. [Sample Input & Output](#sample-input--output)
+16. [Push to GitHub](#push-to-github)
+17. [Deploy on Hugging Face (Future)](#deploy-on-hugging-face-future)
+18. [Tradeoffs & Future Improvements](#tradeoffs--future-improvements)
+19. [Assignment Checklist](#assignment-checklist)
+
+---
+
+## Problem Statement
+
+DelightLoop needs an AI system — not a chatbot demo — that:
+
+1. Reads LinkedIn-style professional profiles (posts, comments, topics, experience)
+2. Extracts **safe, gift-relevant signals** without inferring sensitive attributes
+3. Searches the **real web** for purchasable products within budget and country
+4. Ranks the **top 3 gifts** with reasoning and a personalised note
+5. Pauses for **human review** (approve / reject / edit / regenerate)
+6. Can **learn from reviewer feedback** over time
+
+This repository implements that as a **stateful LangGraph workflow** behind a FastAPI backend, with a Streamlit UI for human review.
+
+---
+
+## What This Project Does
+
+| Capability | Implementation |
+|------------|----------------|
+| Multi-step workflow | LangGraph with 6 nodes + conditional search retry |
+| Signal extraction | Groq LLM (`llama-3.3-70b-versatile`) |
+| Product search | SerpAPI Google Shopping (India) |
+| Validation | Python: budget, appropriateness, URL checks |
+| Ranking + messages | Groq LLM with strict prompt rules |
+| Human review | FastAPI `/review` + Streamlit UI |
+| Learning loop | `data/feedback_memory.json` persists reviewer notes per contact |
+| Tracing | LangSmith (optional, via env vars) |
+| Bulk contacts | `POST /recommend/bulk` |
 
 ---
 
@@ -33,8 +66,8 @@ Takes enriched LinkedIn-style contact data → extracts safe gifting signals →
 
 - **Python 3.10+**
 - Free API keys:
-  - [Groq](https://console.groq.com) — LLM (`llama-3.3-70b-versatile`)
-  - [SerpAPI](https://serpapi.com) — Google Shopping product search
+  - [Groq](https://console.groq.com) — LLM
+  - [SerpAPI](https://serpapi.com) — product search
   - [LangSmith](https://smith.langchain.com) — optional tracing
 
 ### 1. Clone and install
@@ -45,7 +78,7 @@ cd delightloop-gift-agent
 
 python -m venv venv
 
-# Windows
+# Windows (PowerShell / CMD)
 venv\Scripts\activate
 
 # macOS / Linux
@@ -57,52 +90,56 @@ pip install -r requirements.txt
 ### 2. Configure environment
 
 ```bash
-cp .env.example .env
-# Edit .env and add your API keys — never commit .env
+copy .env.example .env        # Windows
+# cp .env.example .env        # macOS / Linux
 ```
 
-### 3. Run the API (Terminal 1)
+Edit `.env` and add your keys. **Never commit `.env` to Git.**
+
+### 3. Start the API (Terminal 1)
+
+Run from the **project root** (`delightloop-gift-agent/`):
 
 ```bash
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Open API docs: http://127.0.0.1:8000/docs
+Verify:
 
-### 4. Run the UI (Terminal 2)
+- Health: http://127.0.0.1:8000/
+- Swagger docs: http://127.0.0.1:8000/docs
+
+### 4. Start the UI (Terminal 2)
+
+Also from the **project root**:
 
 ```bash
-# HTTP mode — talks to FastAPI
-set API_URL=http://127.0.0.1:8000
-set GIFT_AGENT_DIRECT=false
-streamlit run ui/review_app.py
-
-# Or direct mode — no API needed
-set GIFT_AGENT_DIRECT=true
 streamlit run ui/review_app.py
 ```
 
-Open UI: http://localhost:8501
+Open: http://localhost:8501
 
-### 5. Run a recommendation (curl)
+The UI calls the API at `http://127.0.0.1:8000`. **Both must be running.**
 
-**Important:** `/recommend` expects a **single contact object**, not an array.
+### 5. Run via curl
+
+`/recommend` expects a **single contact object** (not an array):
 
 ```bash
-curl -X POST http://127.0.0.1:8000/recommend \
-  -H "Content-Type: application/json" \
+curl -X POST http://127.0.0.1:8000/recommend ^
+  -H "Content-Type: application/json" ^
   -d @sample_input/contact_single.json
 ```
 
 Bulk (array of contacts):
 
 ```bash
-curl -X POST http://127.0.0.1:8000/recommend/bulk \
-  -H "Content-Type: application/json" \
+curl -X POST http://127.0.0.1:8000/recommend/bulk ^
+  -H "Content-Type: application/json" ^
   -d @sample_input/contacts.json
 ```
 
-Full workflow script:
+Full end-to-end script (~60–90 seconds, uses API keys):
 
 ```bash
 python test_schema.py
@@ -114,15 +151,19 @@ python test_schema.py
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GROQ_API_KEY` | **Yes** | Groq API key for LLM calls |
+| `GROQ_API_KEY` | **Yes** | Groq API key for LLM (signal extraction + ranking) |
 | `SERPAPI_KEY` | **Yes** | SerpAPI key for Google Shopping search |
-| `LANGCHAIN_API_KEY` | No | Enables LangSmith tracing |
-| `LANGCHAIN_TRACING_V2` | No | Set `true` to record traces |
+| `LANGCHAIN_API_KEY` | No | LangSmith API key — enables trace upload |
+| `LANGCHAIN_TRACING_V2` | No | Set to `true` to record LLM traces |
 | `LANGCHAIN_PROJECT` | No | LangSmith project name (default: `delightloop-gift-agent`) |
-| `API_URL` | No | FastAPI base URL for Streamlit UI (default: `http://127.0.0.1:8000`) |
-| `GIFT_AGENT_DIRECT` | No | `true` = UI calls workflow in-process; `false` = HTTP to API |
 
-Copy `.env.example` → `.env` locally. On **Hugging Face**, add the same keys as **Space Secrets** (never hardcode in code).
+See `.env.example` for a copy-paste template.
+
+### Security rules
+
+- `.env` is listed in `.gitignore` — **never commit it**
+- Only commit `.env.example` with placeholder values
+- Rotate keys immediately if accidentally pushed
 
 ---
 
@@ -130,44 +171,52 @@ Copy `.env.example` → `.env` locally. On **Hugging Face**, add the same keys a
 
 ```
 delightloop-gift-agent/
-├── app/
-│   ├── main.py                 # FastAPI app, review endpoints, workflow invocation
+│
+├── app/                          # Backend application
+│   ├── main.py                   # FastAPI routes, workflow orchestration
 │   ├── schemas/
-│   │   └── models.py           # Pydantic input/output schemas
+│   │   └── models.py             # Pydantic input/output schemas
 │   ├── services/
-│   │   ├── llm.py              # Groq LLM + LangSmith auto-tracing
-│   │   ├── search.py           # SerpAPI search + query generation
-│   │   ├── feedback_memory.py  # Persistent human feedback (learning loop)
-│   │   └── tracing.py          # LangSmith run metadata + human scores
+│   │   ├── llm.py                # Groq LLM + LangSmith auto-tracing
+│   │   ├── search.py             # SerpAPI + query generation + retry queries
+│   │   ├── feedback_memory.py    # Persistent reviewer feedback (learning)
+│   │   └── tracing.py            # LangSmith run metadata + human scores
 │   ├── utils/
-│   │   └── validators.py       # Price, URL, appropriateness checks
+│   │   └── validators.py         # Price, URL, appropriateness checks
 │   └── workflow/
-│       ├── graph.py            # LangGraph definition + conditional retry
-│       ├── state.py            # GraphState TypedDict
+│       ├── graph.py              # LangGraph definition + conditional retry
+│       ├── state.py              # GraphState TypedDict
 │       └── nodes/
-│           ├── ingest.py       # Step 1: contact ingestion
-│           ├── signals.py      # Step 2: LLM signal extraction
-│           ├── search.py       # Step 3: product search
-│           ├── validate.py     # Step 4: deterministic validation
-│           ├── rank.py         # Step 5: LLM ranking + messages
-│           └── review.py       # Step 6: human review gate
+│           ├── ingest.py         # Step 1: ingest contact
+│           ├── signals.py        # Step 2: LLM signal extraction
+│           ├── search.py         # Step 3: product search node
+│           ├── validate.py       # Step 4: deterministic validation
+│           ├── rank.py           # Step 5: LLM ranking + messages
+│           └── review.py         # Step 6: human review gate
+│
 ├── ui/
-│   ├── review_app.py           # Streamlit human-review interface
-│   └── client.py               # API or direct-mode client
-├── streamlit_app.py            # Hugging Face Space entry point
-├── tests/
-│   └── test_feedback_memory.py
+│   └── review_app.py             # Streamlit human-review interface
+│
 ├── sample_input/
-│   ├── contact_single.json     # Single contact for /recommend
-│   └── contacts.json           # Array for /recommend/bulk
+│   ├── contact_single.json       # One contact → POST /recommend
+│   └── contacts.json             # Array → POST /recommend/bulk
+│
 ├── sample_output/
-│   └── aarav_mehta.json        # Example successful output
-├── data/                       # Runtime feedback memory (gitignored)
-├── Dockerfile                  # Hugging Face Docker Space (API)
+│   └── aarav_mehta.json          # Example successful output shape
+│
+├── tests/
+│   └── test_feedback_memory.py   # Unit tests (no API keys needed)
+│
+├── docs/
+│   ├── ARCHITECTURE.md           # Short architecture note (submission)
+│   └── EVALUATION.md             # Eval rubric (submission)
+│
+├── data/                         # Runtime data (feedback_memory.json gitignored)
+├── test_schema.py                # Full workflow integration script
 ├── requirements.txt
-├── requirements-dev.txt
-├── .env.example                # Template — safe to commit
-└── README.md
+├── .env.example                  # Safe env template — commit this
+├── .gitignore
+└── README.md                     # This file
 ```
 
 ---
@@ -176,391 +225,642 @@ delightloop-gift-agent/
 
 ### Design principles
 
-1. **Separate AI reasoning from deterministic logic** — LLM extracts signals and ranks; Python validates prices and URLs.
-2. **Stateful workflow** — LangGraph manages step order, retries, and state.
-3. **Human-in-the-loop** — Recommendations are not final until reviewed; feedback improves future runs.
-4. **Grounded products** — Gifts come from SerpAPI search results, not LLM invention.
-5. **Observable** — LangSmith traces every LLM call when configured.
+1. **Workflow, not a single prompt** — each step has a clear responsibility
+2. **Separate AI from deterministic logic** — LLM judges; Python enforces hard rules
+3. **Grounded products** — gifts come from SerpAPI, never invented by the model
+4. **Human-in-the-loop** — recommendations are not final until reviewed
+5. **Learning from feedback** — reviewer notes persist and shape future runs
+6. **Observable** — LangSmith traces LLM calls when configured
 
-### High-level system diagram
+### System diagram
 
 ```mermaid
 flowchart TB
-    subgraph Input
-        C[Contact JSON]
+    subgraph Client
+        UI[Streamlit UI<br/>ui/review_app.py]
+        CURL[curl / API clients]
     end
 
     subgraph "FastAPI (app/main.py)"
         API["/recommend · /review · /feedback"]
-        MEM[(feedback_memory.json)]
+        STORE[(In-memory results_store)]
+        MEM[(data/feedback_memory.json)]
+        API --> STORE
         API --> MEM
     end
 
     subgraph "LangGraph Workflow"
-        N1[ingest_contact]
-        N2[extract_signals]
-        N3[search_products]
-        N4[validate_products]
-        N5[rank_gifts]
-        N6[human_review]
+        N1[1. ingest_contact]
+        N2[2. extract_signals]
+        N3[3. search_products]
+        N4[4. validate_products]
+        N5[5. rank_gifts]
+        N6[6. human_review]
         N1 --> N2 --> N3 --> N4
-        N4 -->|"< 3 valid products"| N3
-        N4 -->|"≥ 3 or max retries"| N5 --> N6
+        N4 -->|"< 3 valid products<br/>retries left"| N3
+        N4 -->|"enough products<br/>or max retries"| N5 --> N6
     end
 
     subgraph External
         GROQ[Groq LLM]
         SERP[SerpAPI Shopping]
-        LS[LangSmith]
+        LS[LangSmith Traces]
     end
 
-    subgraph UI
-        ST[Streamlit review_app]
-    end
-
-    C --> API
+    UI -->|HTTP :8000| API
+    CURL --> API
     API --> N1
     N2 --> GROQ
     N3 --> SERP
     N5 --> GROQ
-    GROQ --> LS
-    ST --> API
-    ST -. direct mode .-> N1
+    GROQ -.-> LS
 ```
 
-### AI vs deterministic boundaries
+### Request lifecycle
 
-| Step | Type | Why |
-|------|------|-----|
-| Signal extraction | **LLM** | Unstructured LinkedIn text → structured signals |
-| Query generation | **Deterministic** | Reliable budget/signal → search query mapping |
-| Product search | **Tool (SerpAPI)** | Real purchasable products |
-| Validation | **Deterministic** | Hard rules on price, URL, appropriateness |
-| Ranking + messages | **LLM** | Judgment + natural language generation |
-| Human review | **Human + API** | Trust gate before finalisation |
-| Feedback memory | **Deterministic** | Persist and inject past reviewer notes |
+```mermaid
+sequenceDiagram
+    participant User
+    participant UI as Streamlit
+    participant API as FastAPI
+    participant MEM as feedback_memory
+    participant WF as LangGraph
+    participant SERP as SerpAPI
+    participant LLM as Groq
+
+    User->>UI: Generate recommendations
+    UI->>API: POST /recommend
+    API->>MEM: Load past reviewer feedback
+    MEM-->>API: Historical notes (if any)
+    API->>WF: invoke(state + feedback)
+
+    WF->>LLM: Extract profile signals
+    LLM-->>WF: strong/weak/avoid signals
+
+    WF->>SERP: Search products (multiple queries)
+    SERP-->>WF: Shopping results
+
+    WF->>WF: Validate price, URL, appropriateness
+    alt Fewer than 3 valid products
+        WF->>SERP: Retry with broader queries
+    end
+
+    WF->>LLM: Rank top 3 + personalised messages
+    LLM-->>WF: JSON recommendations
+
+    WF-->>API: Full state + gifts
+    API-->>UI: run_id, gifts, pending_review
+    User->>UI: Approve / Reject / Regenerate
+    UI->>API: POST /review/{run_id}
+    API->>MEM: Save feedback for future runs
+```
 
 ---
 
-## Workflow Deep Dive
+## Workflow Deep Dive (LangGraph)
 
-### LangGraph flow
+### Graph flow
 
 ```mermaid
 stateDiagram-v2
     [*] --> ingest_contact
-    ingest_contact --> extract_signals
-    extract_signals --> search_products
-    search_products --> validate_products
+    ingest_contact --> extract_signals : contact loaded
+    extract_signals --> search_products : signals extracted
+    search_products --> validate_products : raw products fetched
 
-    validate_products --> search_products: validated < 3\nand retries left
-    validate_products --> rank_gifts: enough products\nor max retries
-    rank_gifts --> human_review
-    human_review --> [*]
+    validate_products --> search_products : validated < 3\nAND retries < max
+    validate_products --> rank_gifts : validated ≥ 3\nOR max retries reached
+
+    rank_gifts --> human_review : top 3 ranked
+    human_review --> [*] : status = pending_review
 ```
 
-### Step-by-step
+**Retry logic:** If fewer than 3 products pass validation, the graph loops back to search with **alternate query strategies** (broader premium queries, price-tier queries). Maximum **2 retries** after the initial search (3 search attempts total).
 
-#### Step 1 — Ingest contact
-- Validates contact is present in workflow state.
-- No external calls.
+---
 
-#### Step 2 — Extract signals (LLM)
-- Reads LinkedIn profile: headline, about, posts, comments, topics, experience.
-- Outputs JSON:
-  - `strong_signals` — clear interests (e.g. cricket, SaaS GTM)
-  - `weak_signals` — uncertain inferences
-  - `signals_to_avoid` — guardrails (no religion, politics, health, etc.)
-- **Injected context:** past reviewer feedback from `feedback_memory.json`.
+### Step 1 — Ingest contact
 
-#### Step 3 — Search products (SerpAPI)
-- Generates up to 4 queries from signals + budget (e.g. `premium cricket gift hamper India 3000 to 5000 INR`).
-- Calls Google Shopping via SerpAPI (`gl=in` for India).
-- Builds fallback Amazon/Flipkart search URLs when direct product links are missing.
-- **Retry mode:** broader/alternate queries; merges and deduplicates products.
+- **File:** `app/workflow/nodes/ingest.py`
+- **Type:** Deterministic
+- Loads contact from workflow state; sets `current_step = ingest_contact`
+- No external API calls
 
-#### Step 4 — Validate products (deterministic)
-Hard filters:
-- **Price:** must be within 95% of `budget_min` → `budget_max`
-- **Appropriateness:** blocks alcohol, religious, adult, medical keywords
-- **URL:** soft check (fallback URLs kept even if HEAD request fails)
+---
 
-If **< 3 products** pass → increment retry counter → loop back to search (max 2 retries).
+### Step 2 — Extract signals (LLM)
 
-#### Step 5 — Rank gifts (LLM)
-- Ranks top 3 distinct in-budget products.
-- **Budget rule:** out-of-budget products capped at confidence ≤ 0.3.
-- **Message rules:** no generic "Dear X, I wanted to thank you"; must reference specific profile signals.
-- **Reasoning rules:** cite actual signals, not meta-commentary.
-- JSON parse retry + deterministic fallback ranking if LLM output fails.
+- **File:** `app/workflow/nodes/signals.py`
+- **Type:** AI (Groq LLM)
 
-#### Step 6 — Human review
-- Sets status `pending_review`.
-- Available actions: `approve`, `reject`, `edit`, `regenerate`.
+**Input:** LinkedIn profile fields — headline, about, posts, comments, engaged topics, experience, plus gift/relationship context.
+
+**Output JSON:**
+```json
+{
+  "strong_signals": ["Interested in cricket", "SaaS sales leadership"],
+  "weak_signals": ["May appreciate executive gift hampers"],
+  "signals_to_avoid": ["Do not infer religion, politics, health, family status, or ethnicity"]
+}
+```
+
+**Guardrails baked into prompt:**
+- Strong = clearly visible in posts/comments/topics
+- Weak = uncertain inference
+- Always include sensitive-attribute warnings in `signals_to_avoid`
+- Never infer religion, politics, health, family, ethnicity, gender
+
+**Learning injection:** If the contact has past reviewer feedback in `feedback_memory.json`, it is injected into this prompt so signal extraction respects prior human judgment.
+
+---
+
+### Step 3 — Search products (SerpAPI)
+
+- **Files:** `app/workflow/nodes/search.py`, `app/services/search.py`
+- **Type:** Tool / deterministic query generation
+
+**Query generation (primary attempt):**
+- Builds queries from strong signals + budget, e.g.:
+  - `premium cricket gift hamper India 3000 to 5000 INR`
+  - `executive leadership gift hamper India 3000 to 5000 rupees`
+  - `luxury corporate gift hamper India 3000 to 5000 rupees Amazon Flipkart`
+
+**Retry queries (attempt 2+):**
+- Broader: `luxury gift hamper under 5000 rupees Amazon India`
+- Price-tier: `gift set 3000 rupees India buy online premium`
+
+**Search:** SerpAPI Google Shopping (`gl=in`, `tbm=shop`, top 5 per query)
+
+**URL handling:** Uses direct product link when available; otherwise builds Amazon.in or Flipkart search fallback URL — products are never invented.
+
+**Dedup:** Products deduplicated by title + URL across queries and retries.
+
+**Trace output:** `search_trace.queries_used`, `products_considered_count`, `search_retries`
+
+---
+
+### Step 4 — Validate products (deterministic)
+
+- **Files:** `app/workflow/nodes/validate.py`, `app/utils/validators.py`
+- **Type:** Deterministic hard filters
+
+| Check | Rule |
+|-------|------|
+| **Price in budget** | `(budget_min × 0.95) ≤ price ≤ budget_max` |
+| **Professional appropriateness** | Blocks alcohol, religious, adult, medical keywords in title |
+| **URL** | Soft check — fallback URLs kept even if HEAD request fails |
+
+Only products passing **price + appropriateness** enter `validated_products`.
+
+If `len(validated_products) < 3` → increment `search_retry_count` → conditional edge back to search.
+
+---
+
+### Step 5 — Rank gifts (LLM)
+
+- **File:** `app/workflow/nodes/rank.py`
+- **Type:** AI (Groq LLM)
+
+**Ranking rules in prompt:**
+- Pick top 3 **distinct** products from validated list
+- **Budget penalty:** out-of-budget products → confidence ≤ 0.3
+- Lower confidence when signals are weak or matches are poor
+
+**Message rules:**
+- 2–3 sentences, warm and professional
+- Open with something **specific** to this contact (cricket, discovery call, role)
+- **Banned:** `"Dear {name}, I wanted to thank you..."` and similar generic openers
+- Must reference at least one concrete profile signal
+
+**Reasoning rules:**
+- Cite actual signals by name — not meta-commentary like "shows we understand their hobbies"
+
+**Resilience:**
+- JSON parse retry (2 attempts)
+- Deterministic fallback ranking if LLM output fails entirely
+
+**Learning injection:** Past reviewer feedback (reject reasons, regenerate notes) injected into ranking prompt.
+
+---
+
+### Step 6 — Human review gate
+
+- **File:** `app/workflow/nodes/review.py`
+- Sets:
+```json
+{
+  "status": "pending_review",
+  "available_actions": ["approve", "reject", "edit", "regenerate"],
+  "reviewer_notes": null
+}
+```
+
+Final actions handled by FastAPI `/review/{run_id}` — not inside the graph loop.
+
+---
 
 ### GraphState schema
 
 ```python
 {
-    "contact": dict,
-    "profile_signals": dict,
-    "search_trace": dict,       # queries_used, products_considered_count, search_retries
-    "raw_products": list,
-    "validated_products": list,
-    "recommended_gifts": list,
-    "human_review": dict,
-    "errors": list,
+    "contact": dict,                  # Full input contact object
+    "profile_signals": dict,          # strong / weak / avoid signals
+    "search_trace": dict,             # queries_used, products_considered_count, search_retries
+    "raw_products": list,             # All products from search (pre-validation)
+    "validated_products": list,       # Products passing hard filters
+    "recommended_gifts": list,        # Top 3 ranked output
+    "human_review": dict,             # Review status and actions
+    "errors": list,                   # Non-fatal error strings per step
     "current_step": str,
     "search_retry_count": int,
-    "reviewer_feedback": str,   # historical + session notes for LLM
+    "reviewer_feedback": str,         # Historical + session notes for LLM prompts
 }
 ```
+
+---
+
+## AI vs Deterministic Logic
+
+```mermaid
+flowchart LR
+    subgraph "AI (LLM)"
+        A1[Signal extraction]
+        A2[Ranking + messages]
+    end
+
+    subgraph "Deterministic (Python)"
+        D1[Query generation]
+        D2[Price validation]
+        D3[Appropriateness filter]
+        D4[Product deduplication]
+        D5[Feedback memory I/O]
+        D6[Conditional retry routing]
+    end
+
+    subgraph "External Tools"
+        T1[SerpAPI Shopping]
+    end
+
+    A1 --> D1 --> T1 --> D2 --> D3 --> A2
+    D5 -.-> A1
+    D5 -.-> A2
+    D6 -.-> D1
+```
+
+| Why this split? |
+|-----------------|
+| LLM is good at reading unstructured profiles and writing personalised text |
+| Python is reliable for numeric budget checks and keyword blocklists |
+| SerpAPI grounds products in real search results |
+| Feedback memory is deterministic storage — no hallucinated "memory" |
 
 ---
 
 ## API Reference
 
+Base URL: `http://127.0.0.1:8000`  
+Interactive docs: `http://127.0.0.1:8000/docs`
+
 ### `GET /`
+
 Health check.
-
-### `POST /recommend`
-Run full workflow for one contact. Loads historical feedback automatically.
-
-**Body:** single contact object (see `sample_input/contact_single.json`).
 
 **Response:**
 ```json
-{
-  "run_id": "uuid",
-  "contact_name": "Aarav Mehta",
-  "profile_signals": { ... },
-  "search_trace": { ... },
-  "recommended_gifts": [ ... ],
-  "human_review": { "status": "pending_review", ... },
-  "learning_context": {
-    "historical_feedback_applied": true,
-    "feedback_entries_count": 2,
-    "last_action": "reject",
-    "last_notes": "Too generic"
-  },
-  "errors": []
-}
+{ "status": "DelightLoop Gift Agent is running" }
 ```
-
-### `POST /recommend/bulk`
-Array of contacts. Returns one result per contact.
-
-### `POST /review/{run_id}?action=approve|reject|edit|regenerate&notes=...`
-Human review action. Persists feedback to `data/feedback_memory.json`.
-
-| Action | Effect |
-|--------|--------|
-| `approve` | Marks approved; saves feedback; scores LangSmith trace +1 |
-| `reject` | Marks rejected; saves feedback; scores LangSmith trace 0 |
-| `edit` | Saves reviewer notes only |
-| `regenerate` | Re-runs workflow with notes injected into prompts |
-
-### `GET /feedback?name=Aarav Mehta&company=Acme Corp`
-Inspect persisted feedback history for a contact.
-
-### `GET /results/{run_id}` · `GET /results`
-Fetch stored run(s) from in-memory store (resets on server restart).
 
 ---
 
-## Streamlit UI
+### `POST /recommend`
 
-Features:
-- Load sample contact or paste JSON
-- View profile signals, search trace, top 3 gifts
-- Learning memory banner when past feedback applies
-- Approve / Reject / Regenerate / Save notes
-- Raw JSON viewer
+Run the full workflow for **one contact**.
 
-**Modes** (via `ui/client.py`):
+**Body:** Single contact JSON object — see `sample_input/contact_single.json`
 
-| Mode | When | Use case |
-|------|------|----------|
-| **HTTP** | `GIFT_AGENT_DIRECT=false`, `API_URL` set | Local dev with separate API |
-| **Direct** | `GIFT_AGENT_DIRECT=true` or no `API_URL` | Hugging Face Space, single-process demo |
+**Response fields:**
+
+| Field | Description |
+|-------|-------------|
+| `run_id` | UUID for this run — needed for review actions |
+| `contact_name` | Contact display name |
+| `profile_signals` | Extracted strong/weak/avoid signals |
+| `search_trace` | Queries used, product count, retry count |
+| `recommended_gifts` | Top 3 ranked gifts with messages |
+| `human_review` | `pending_review` + available actions |
+| `learning_context` | Whether past feedback was applied |
+| `errors` | Non-fatal errors from any step |
+
+---
+
+### `POST /recommend/bulk`
+
+**Body:** JSON **array** of contact objects — see `sample_input/contacts.json`
+
+Returns one result object per contact (or error per contact).
+
+---
+
+### `POST /review/{run_id}`
+
+Human review action.
+
+**Query parameters:**
+
+| Param | Values | Description |
+|-------|--------|-------------|
+| `action` | `approve`, `reject`, `edit`, `regenerate` | Review action |
+| `notes` | string (optional) | Reviewer feedback text |
+
+**Action behaviour:**
+
+| Action | What happens |
+|--------|--------------|
+| `approve` | Marks approved; saves feedback; LangSmith score +1 |
+| `reject` | Marks rejected; saves feedback; LangSmith score 0 |
+| `edit` | Saves notes only (no re-run) |
+| `regenerate` | Saves notes; re-runs full workflow with notes injected into prompts |
+
+**Example:**
+```bash
+curl -X POST "http://127.0.0.1:8000/review/RUN_ID_HERE?action=reject&notes=Too%20generic%20-%20mention%20cricket"
+```
+
+---
+
+### `GET /feedback?name=Aarav Mehta&company=Acme Corp`
+
+Returns persisted feedback history for a contact.
+
+---
+
+### `GET /results/{run_id}` · `GET /results`
+
+Fetch stored run data from in-memory store.
+
+> **Note:** `results_store` is in-memory — data is lost when the API server restarts. Fine for assignment prototype; use a database in production.
+
+---
+
+## Streamlit Review UI
+
+**File:** `ui/review_app.py`  
+**Run:** `streamlit run ui/review_app.py` (from project root, with API running on port 8000)
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| Sample contact | Pre-loaded Aarav Mehta example |
+| Paste JSON | Custom contact input |
+| Profile signals | Strong / weak / avoid displayed in columns |
+| Learning banner | Shows when historical feedback is active |
+| Search trace | Queries used + product count |
+| Top 3 gifts | Expandable cards with price, confidence, URL, message |
+| Human review | Approve · Reject · Regenerate · Save notes |
+| Raw JSON | Full API response viewer |
+
+### UI workflow
+
+```mermaid
+flowchart TD
+    A[Load contact] --> B[Generate Gift Recommendations]
+    B --> C[View signals + search trace + top 3]
+    C --> D{Reviewer decision}
+    D -->|Approve| E[Mark approved + save feedback]
+    D -->|Reject| F[Mark rejected + save feedback]
+    D -->|Regenerate| G[Re-run with notes injected]
+    D -->|Save notes| H[Persist notes for later regenerate]
+    F --> I[Next /recommend run uses saved feedback]
+    G --> C
+```
+
+### Common issue
+
+| Problem | Fix |
+|---------|-----|
+| UI shows connection error | Start API first: `uvicorn app.main:app --reload` |
+| Empty recommendations | Check `.env` keys; read `errors[]` in response |
+| curl fails on contacts.json | Use `contact_single.json` for `/recommend` (single object, not array) |
 
 ---
 
 ## Human Review & Learning Loop
 
+### How learning works
+
 ```mermaid
 sequenceDiagram
-    participant U as Reviewer
+    participant R as Reviewer
     participant API as FastAPI
-    participant WF as LangGraph
     participant MEM as feedback_memory.json
+    participant WF as LangGraph
 
-    U->>API: POST /recommend
-    API->>MEM: load past feedback
-    MEM-->>API: "Previous REJECTED: too generic"
-    API->>WF: invoke with reviewer_feedback
-    WF-->>API: recommendations
-    API-->>U: pending_review
+    R->>API: POST /recommend (Run 1)
+    API->>WF: invoke (no prior feedback)
+    WF-->>R: Generic cricket hamper suggestions
 
-    U->>API: reject + notes
-    API->>MEM: save feedback
+    R->>API: reject — "too generic, mention India vs Australia match"
+    API->>MEM: save {action: reject, notes: ...}
 
-    U->>API: POST /recommend (new run)
+    R->>API: POST /recommend (Run 2, same contact)
     API->>MEM: load feedback
-    MEM-->>WF: injected into prompts
-    WF-->>U: improved recommendations
+    MEM-->>WF: "Previous REJECTED — reason: too generic..."
+    WF-->>R: Improved, more specific recommendations
 ```
 
-**What improves over time:** reviewer notes from approve/reject/regenerate are saved per contact (name + company) and injected into signal extraction and ranking prompts on every future run.
+**Storage:** `data/feedback_memory.json` (gitignored — runtime data)  
+**Key:** normalised `contact_name + company`  
+**Retention:** Last 10 entries per contact; last 5 injected into prompts
 
-**What does not auto-improve:** LangSmith traces alone — they record runs for debugging, not learning.
+### What LangSmith tracing does vs learning
+
+| | LangSmith traces | Feedback memory |
+|--|-----------------|-----------------|
+| **Purpose** | Observability / debugging | Actual quality improvement |
+| **Changes next run?** | No | Yes |
+| **Requires** | `LANGCHAIN_API_KEY` | Reviewer approve/reject/regenerate |
 
 ---
 
 ## Observability (LangSmith)
 
-When `LANGCHAIN_API_KEY` is set:
+**File:** `app/services/llm.py` — auto-enables tracing when `LANGCHAIN_API_KEY` is set.
 
-- Every LLM call (signals, ranking) is traced automatically
-- Each workflow run uses API `run_id` as LangSmith trace ID
-- Approve → feedback score `1.0`; Reject → score `0.0`
+**What gets traced:**
+- Signal extraction LLM call
+- Ranking LLM call
+- Full LangGraph run (via `run_id` metadata in `app/services/tracing.py`)
 
-View traces: https://smith.langchain.com → project `delightloop-gift-agent`
+**Human feedback scores:**
+- Approve → LangSmith feedback score `1.0`
+- Reject → LangSmith feedback score `0.0`
+
+**View traces:** https://smith.langchain.com → project `delightloop-gift-agent`
 
 ---
 
 ## Quality & Evaluation
 
-### How I would measure quality
+See `docs/EVALUATION.md` for the full rubric. Summary:
 
-| Dimension | Method | Pass criteria |
-|-----------|--------|---------------|
-| **Gift relevance** | Manual rubric: does gift match strong signals? | ≥ 2/3 gifts clearly tied to profile |
-| **Budget fit** | Automated: `is_price_in_budget` | 100% of ranked gifts in range |
-| **Link validity** | HTTP HEAD on product URLs | No hallucinated URLs |
-| **Message quality** | Rubric: specific vs generic opener | No banned templates; cites ≥ 1 signal |
-| **Professional tone** | Manual review | Appropriate for relationship type |
-| **Guardrails** | Adversarial profiles | No sensitive-attribute inference |
-| **Failure handling** | Empty/poor search mock | Retry fires; confidence lowered |
+| Dimension | How measured | Target |
+|-----------|-------------|--------|
+| Gift relevance | Manual rubric vs profile signals | ≥ 2/3 gifts clearly tied to signals |
+| Budget fit | `is_price_in_budget` validator | 100% ranked gifts in range |
+| Link validity | URL HEAD check + SerpAPI grounding | No hallucinated URLs |
+| Message quality | Rubric: specific opener, 2–3 sentences | No generic templates |
+| Guardrails | Adversarial profiles | No sensitive-attribute inference |
+| Failure handling | Poor search results | Retry fires; confidence lowered |
 
-### Regression approach
-
-1. Golden set: `sample_input/contacts.json` + expected signal keywords
-2. `pytest tests/` for feedback memory
-3. LangSmith dataset: store approved runs as positive examples
-4. Track: approval rate, rejection rate, regeneration rate over time
-
-See also: `docs/EVALUATION.md`
+**Regression tests:**
+```bash
+pytest tests/test_feedback_memory.py -q   # unit tests, no API keys
+python test_schema.py                     # full workflow integration
+```
 
 ---
 
 ## Testing
 
 ```bash
-# Full workflow (requires API keys, ~60–90s)
-python test_schema.py
+# Activate venv first
+pip install pytest        # if not installed
 
-# Unit tests (no API keys)
-pip install -r requirements-dev.txt
+# Unit tests — feedback memory (fast, no API keys)
 pytest tests/ -q
+
+# Full workflow — requires GROQ_API_KEY + SERPAPI_KEY (~60–90s)
+python test_schema.py
 ```
 
 ---
 
-## Deployment
+## Sample Input & Output
 
-### GitHub
+| File | Purpose |
+|------|---------|
+| `sample_input/contact_single.json` | Single contact → `POST /recommend` |
+| `sample_input/contacts.json` | Contact array → `POST /recommend/bulk` |
+| `sample_output/aarav_mehta.json` | Example output shape after successful run |
 
-**Never commit `.env`.** Only commit `.env.example`.
+**Expected output structure:**
+```json
+{
+  "run_id": "uuid",
+  "contact_name": "Aarav Mehta",
+  "profile_signals": { "strong_signals": [], "weak_signals": [], "signals_to_avoid": [] },
+  "search_trace": { "queries_used": [], "products_considered_count": 0, "search_retries": 0 },
+  "recommended_gifts": [
+    {
+      "rank": 1,
+      "gift_name": "...",
+      "product_url": "https://...",
+      "store": "amazon.in",
+      "estimated_price": "₹3,200",
+      "why_this_gift": "...",
+      "personalisation_reasoning": "...",
+      "personalised_message": "...",
+      "confidence_score": 0.85,
+      "risk_level": "low",
+      "assumptions": ["..."]
+    }
+  ],
+  "human_review": { "status": "pending_review", "available_actions": ["approve","reject","edit","regenerate"] },
+  "learning_context": { "historical_feedback_applied": false, "feedback_entries_count": 0 },
+  "errors": []
+}
+```
+
+---
+
+## Push to GitHub
+
+### Before pushing — checklist
+
+- [ ] `.env` is **not** staged (`git status` should not list `.env`)
+- [ ] `.env.example` **is** committed (placeholders only)
+- [ ] `venv/` is not staged
+- [ ] `data/feedback_memory.json` is not staged (runtime data)
+
+Verify:
+```bash
+git status
+```
+
+### Step 1 — Configure Git identity (one-time)
 
 ```bash
-# One-time: configure git identity (if not set globally)
-git config user.email "you@example.com"
+git config user.email "your.email@example.com"
 git config user.name "Your Name"
+```
 
-git add .
-git status   # verify .env is NOT listed
-git commit -m "DelightLoop gift agent: LangGraph workflow, review UI, learning loop"
+### Step 2 — Stage and commit
+
+```bash
+cd delightloop-gift-agent
+
+git add README.md .env.example docs/ sample_output/ .gitignore
+git add app/ ui/ tests/ sample_input/ test_schema.py requirements.txt ROLLBACK.md
+git status    # confirm .env is NOT listed
+
+git commit -m "Add comprehensive README and submission documentation"
+```
+
+### Step 3 — Create GitHub repo and push
+
+**Option A — GitHub CLI (recommended):**
+```bash
+gh auth login
+gh repo create delightloop-gift-agent --public --source=. --remote=origin --push
+```
+
+**Option B — Manual:**
+1. Create repo at https://github.com/new (name: `delightloop-gift-agent`, **no** README/license)
+2. Push:
+```bash
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/delightloop-gift-agent.git
 git push -u origin main
 ```
 
-Create repo on GitHub first: https://github.com/new → name `delightloop-gift-agent` → **do not** add README (you already have one).
+---
 
-### Hugging Face Spaces
+## Deploy on Hugging Face (Future)
 
-Two deployment options:
+> Not required for the assignment submission, but documented for reference.
 
-#### Option A — Streamlit Space (recommended for demo)
+**Recommended approach:** Two terminals locally is the current setup (API + Streamlit). For Hugging Face:
 
-Single app with UI + in-process workflow. No separate API.
-
-1. Create Space: https://huggingface.co/new-space
-   - SDK: **Streamlit**
-   - Hardware: **CPU basic** (free)
-2. Push this repo or connect GitHub
-3. Set **Space Secrets** (Settings → Secrets):
-
-   | Secret | Value |
-   |--------|-------|
-   | `GROQ_API_KEY` | your key |
-   | `SERPAPI_KEY` | your key |
-   | `LANGCHAIN_API_KEY` | optional |
-   | `LANGCHAIN_TRACING_V2` | `true` |
-   | `LANGCHAIN_PROJECT` | `delightloop-gift-agent` |
-
-4. Ensure `app_file` in README frontmatter points to `streamlit_app.py`  
-   (copy YAML header from `README_HF_SPACE.md` into Space README if needed)
-
-5. Space runs `streamlit_app.py` → direct mode → full workflow in one container
-
-#### Option B — Docker Space (API only)
-
-For REST API / curl demos:
-
-1. Create Space with SDK: **Docker**
-2. Uses root `Dockerfile` — exposes port **7860**
-3. Add same secrets as above
-4. Test: `curl https://YOUR-SPACE.hf.space/recommend -d @sample_input/contact_single.json`
-
-Pair with local Streamlit:
-```bash
-set API_URL=https://YOUR-SPACE.hf.space
-set GIFT_AGENT_DIRECT=false
-streamlit run ui/review_app.py
-```
-
-### Environment security checklist
-
-- [ ] `.env` in `.gitignore`
-- [ ] `.env.example` has placeholders only
-- [ ] HF secrets set in Space settings, not in code
-- [ ] Rotate keys if ever committed accidentally
+1. **Streamlit Space** — host UI; point `API_URL` to a deployed API
+2. **Docker Space** — host FastAPI using a `Dockerfile` with `uvicorn app.main:app --host 0.0.0.0 --port 7860`
+3. Add `GROQ_API_KEY`, `SERPAPI_KEY`, and optional LangSmith keys as **Space Secrets** — never in code
 
 ---
 
 ## Tradeoffs & Future Improvements
 
-### Tradeoffs made
+### Tradeoffs
 
-| Decision | Why | Cost |
-|----------|-----|------|
-| Groq free tier | Fast, free for assignment | Rate limits; occasional JSON parse failures |
-| SerpAPI Google Shopping | Real product links | Search quality varies; many cheap results |
-| In-memory `results_store` | Simple for prototype | Lost on restart; not multi-user |
-| JSON feedback file | No database setup | Not suitable for production scale |
-| 95% budget floor | Filters sub-budget junk | May reject valid sale items slightly below min |
+| Decision | Reason | Limitation |
+|----------|--------|------------|
+| Groq free tier | Fast, zero cost for assignment | Rate limits; occasional JSON parse failures |
+| SerpAPI Google Shopping | Real product links | Many cheap/irrelevant results for premium queries |
+| In-memory `results_store` | Simple prototype | Lost on restart; not multi-user |
+| JSON feedback file | No DB setup | Not production-scale |
+| 95% budget floor | Filters sub-budget junk | May reject valid sale prices slightly below min |
 
 ### Future improvements
 
-- Postgres for runs + feedback (multi-tenant, durable)
-- Pydantic request validation on `/recommend`
-- UI bulk upload + inline gift editing
+- Postgres for runs, feedback, and LangGraph checkpointing
+- Pydantic validation on `/recommend` input
+- UI bulk upload wired to `/recommend/bulk`
+- Inline gift editing in review UI
 - Message tone selector (formal / warm / casual)
-- LangSmith eval dataset + CI regression
-- Cached search results to reduce SerpAPI cost
-- Direct product page URLs (scrape Amazon/Flipkart when SerpAPI returns search links)
+- LangSmith eval dataset + CI regression checks
+- Hugging Face Spaces deployment with Space Secrets
+
+See also: `docs/ARCHITECTURE.md`
 
 ---
 
@@ -570,30 +870,49 @@ streamlit run ui/review_app.py
 |-------------|--------|
 | Multi-step LangGraph workflow | ✅ |
 | Signal extraction + guardrails | ✅ |
-| Real web product search | ✅ SerpAPI |
-| Product validation | ✅ price, URL, appropriateness |
-| Top 3 ranking + messages | ✅ |
+| Real web product search (SerpAPI) | ✅ |
+| Product validation (price, URL, appropriateness) | ✅ |
+| Top 3 ranking + personalised messages | ✅ |
 | Human review (approve/reject/edit/regenerate) | ✅ |
-| Intermediate outputs visible | ✅ API + UI |
-| Multiple contacts | ✅ bulk endpoint |
+| Intermediate outputs visible | ✅ API + Streamlit |
+| Multiple contacts (bulk) | ✅ |
 | FastAPI backend | ✅ |
-| Streamlit UI | ✅ |
-| Retry on poor search | ✅ conditional edge |
+| Streamlit review UI | ✅ |
+| Conditional search retry | ✅ |
 | LangSmith tracing | ✅ optional |
-| Learning from feedback | ✅ feedback_memory |
-| README + setup | ✅ this file |
-| Sample input/output | ✅ `sample_input/`, `sample_output/` |
-| Architecture note | ✅ above + `docs/ARCHITECTURE.md` |
-| Eval note | ✅ above + `docs/EVALUATION.md` |
+| Learning from reviewer feedback | ✅ feedback_memory |
+| README with setup instructions | ✅ this file |
+| Sample input / output | ✅ `sample_input/`, `sample_output/` |
+| Architecture note | ✅ `docs/ARCHITECTURE.md` |
+| Evaluation note | ✅ `docs/EVALUATION.md` |
+| GitHub repository | ⬜ push using steps above |
+| Demo video / screenshots | ⬜ optional |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Workflow | LangGraph |
+| LLM | Groq (`llama-3.3-70b-versatile`) via LangChain |
+| Search | SerpAPI (Google Shopping) |
+| API | FastAPI + Uvicorn |
+| UI | Streamlit |
+| Schemas | Pydantic |
+| Tracing | LangSmith (optional) |
+| Tests | pytest |
 
 ---
 
 ## License
 
-MIT — assignment submission for DelightLoop.
+MIT — DelightLoop assignment submission.
 
 ---
 
-## Author
+## Contact
 
-Built as part of the DelightLoop **Founding AI Engineer** hiring assignment.
+Built for the DelightLoop **Founding AI Engineer** hiring process.
+
+For questions about this submission, refer to the workflow diagrams above and run `python test_schema.py` to reproduce output locally.

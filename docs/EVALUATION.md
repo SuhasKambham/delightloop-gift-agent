@@ -8,23 +8,21 @@ Companion to [README.md](../README.md). Submission artifact for DelightLoop assi
 
 **Question:** Does each gift clearly connect to visible profile signals?
 
-**Example pass (Aarav Mehta):** Personalised cricket bat → cites cricket posts and India vs Australia match.
-
-**Example fail:** Generic book hamper with no tie to VP Sales / cricket / GTM signals.
+- **Pass:** Personalised cricket bat for Aarav — cites cricket posts and match comment
+- **Fail:** Generic book hamper with no tie to VP Sales / cricket / GTM signals
 
 ### 2. Budget fit (automated)
 
-Validator enforces `(budget_min × 0.95) ≤ price ≤ budget_max`.
+Validator: `(budget_min × 0.95) ≤ price ≤ budget_max`
 
-**Metric:** `% of validated products in budget` and `% of final ranked gifts in budget`.
-
-**Target:** 100% of ranked gifts should be in budget; if not, confidence must be ≤ 0.3.
+**Metrics:** % validated in budget; % ranked gifts in budget  
+**Target:** 100% of ranked gifts in range (or confidence ≤ 0.3 if not)
 
 ### 3. Product link validity
 
-- SerpAPI returns real shopping results (not LLM-generated URLs)
-- Fallback: Amazon/Flipkart search URLs when direct links unavailable
-- **Metric:** `% URLs returning HTTP < 400` on HEAD request
+- Products sourced from SerpAPI (not LLM-generated)
+- Fallback Amazon/Flipkart search URLs when direct links unavailable
+- **Metric:** % URLs returning HTTP < 400 on HEAD request
 
 ### 4. Message quality (manual rubric)
 
@@ -37,38 +35,41 @@ Validator enforces `(budget_min × 0.95) ≤ price ≤ budget_max`.
 
 ### 5. Guardrails (adversarial)
 
-Test profiles with religious/political/health hints → system must not recommend based on those attributes and must list them in `signals_to_avoid`.
+Profiles with religious/political/health hints → must not recommend based on those; must list in `signals_to_avoid`.
 
 ### 6. Failure handling
 
-| Scenario | Expected behaviour |
-|----------|-------------------|
-| SerpAPI returns only cheap products | Search retry with broader queries |
-| Still < 3 products | Rank available with lower confidence |
-| LLM returns invalid JSON | Parse retry → fallback ranking |
-| Reviewer rejects as "too generic" | Next run injects feedback; message should change |
+| Scenario | Expected |
+|----------|----------|
+| Search returns only cheap products | Retry with broader queries |
+| Still < 3 valid products | Rank available; lower confidence |
+| Reviewer rejects as "too generic" | Next run injects feedback; message changes |
 
-## Metrics to track in production
+## Production metrics
 
-- **Approval rate** — % of runs approved without regenerate
-- **Regeneration rate** — % requiring second pass
-- **Edit rate** — reviewer notes frequency
-- **Latency** — p50/p95 end-to-end (target: < 90s)
-- **Cost** — Groq + SerpAPI calls per contact
-- **LangSmith scores** — mean human_review feedback score over time
+- Approval rate (% approved without regenerate)
+- Regeneration rate
+- Mean confidence score per run
+- p95 end-to-end latency (target < 90s)
+- Groq + SerpAPI cost per contact
+- LangSmith mean human_review score over time
 
 ## Golden test cases
 
-1. **Aarav Mehta** — cricket + SaaS VP, INR 3000–5000 → cricket or executive gifts
-2. **Sparse profile** — minimal LinkedIn data → lower confidence, explicit assumptions
-3. **Budget edge** — only products at 2900 and 5100 → 2900 passes, 5100 filtered
+1. **Aarav Mehta** — cricket + SaaS VP, INR 3000–5000
+2. **Sparse profile** — minimal LinkedIn → lower confidence, explicit assumptions
+3. **Budget edge** — products at 2900 and 5100 → only 2900 passes validation
 
-Run: `python test_schema.py` and `pytest tests/ -q`
+```bash
+pytest tests/ -q
+python test_schema.py
+```
 
 ## Is the AI getting better?
 
-**Tracing alone:** No — LangSmith records runs.
-
-**Feedback memory:** Yes — reject/approve notes persist and inject into future prompts for the same contact.
-
-**Next step for measurable improvement:** LangSmith dataset with scored examples + CI check that golden contacts maintain minimum relevance score.
+| Mechanism | Improves output? |
+|-----------|-----------------|
+| LangSmith traces | No — observability only |
+| Feedback memory | Yes — reject/approve notes persist per contact |
+| Regenerate with notes | Yes — same-session improvement |
+| Next step | LangSmith eval dataset + CI regression on golden contacts |

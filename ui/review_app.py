@@ -122,20 +122,20 @@ if "result" in st.session_state:
             st.markdown(f"- {s}")
 
     with col3:
-    if st.button("🔄 Regenerate"):
-        if not notes:
-            st.warning("Add notes above to guide regeneration — otherwise results will be similar")
-        else:
-            with st.spinner("Regenerating with your feedback..."):
-                r = requests.post(
-                    f"{API_URL}/review/{run_id}?action=regenerate",
-                    params={"notes": notes}
-                )
-                new_result = r.json()
-                st.session_state["result"] = new_result
-                st.session_state["run_id"] = new_result.get("run_id", run_id)
-                st.success("Regenerated with feedback!")
-                st.rerun()
+        st.markdown("**🚫 Signals to Avoid**")
+        for s in signals.get("signals_to_avoid", []):
+            st.markdown(f"- {s}")
+
+    st.divider()
+
+    # Learning context banner
+    learning = result.get("learning_context", {})
+    if learning.get("historical_feedback_applied"):
+        st.info(
+            f"**Learning memory active** — {learning['feedback_entries_count']} past review(s) "
+            f"for this contact are shaping this run"
+            + (f" (last: {learning.get('last_action')})" if learning.get("last_action") else "")
+        )
 
     # Search Trace
     st.subheader("🔎 Search Trace")
@@ -149,34 +149,40 @@ if "result" in st.session_state:
     # Gift Recommendations
     st.subheader("🎁 Top 3 Gift Recommendations")
 
-    for gift in result["recommended_gifts"]:
-        rank = gift["rank"]
-        medal = ["🥇", "🥈", "🥉"][rank - 1]
+    if not result.get("recommended_gifts"):
+        st.warning("No gift recommendations generated. Check errors below.")
+    else:
+        for gift in result["recommended_gifts"]:
+            rank = gift["rank"]
+            medal = ["🥇", "🥈", "🥉"][rank - 1]
 
-        with st.expander(f"{medal} Rank #{rank}: {gift['gift_name']} — {gift['estimated_price']}", expanded=True):
-            col1, col2 = st.columns(2)
+            with st.expander(
+                f"{medal} Rank #{rank}: {gift['gift_name']} — {gift['estimated_price']}",
+                expanded=True
+            ):
+                col1, col2 = st.columns(2)
 
-            with col1:
-                st.markdown(f"**Store:** {gift['store']}")
-                st.markdown(f"**Price:** {gift['estimated_price']}")
-                st.markdown(f"**Confidence:** {int(gift['confidence_score'] * 100)}%")
-                st.markdown(f"**Risk:** {gift['risk_level']}")
-                st.markdown(f"**URL:** [View Product]({gift['product_url']})")
+                with col1:
+                    st.markdown(f"**Store:** {gift['store']}")
+                    st.markdown(f"**Price:** {gift['estimated_price']}")
+                    st.markdown(f"**Confidence:** {int(gift['confidence_score'] * 100)}%")
+                    st.markdown(f"**Risk:** {gift['risk_level']}")
+                    st.markdown(f"**URL:** [View Product]({gift['product_url']})")
 
-            with col2:
-                st.markdown(f"**Why this gift:**")
-                st.info(gift["why_this_gift"])
+                with col2:
+                    st.markdown("**Why this gift:**")
+                    st.info(gift["why_this_gift"])
 
-            st.markdown("**Personalised Message:**")
-            st.success(gift["personalised_message"])
+                st.markdown("**Personalised Message:**")
+                st.success(gift["personalised_message"])
 
-            st.markdown("**Reasoning:**")
-            st.caption(gift["personalisation_reasoning"])
+                st.markdown("**Reasoning:**")
+                st.caption(gift["personalisation_reasoning"])
 
-            if gift.get("assumptions"):
-                st.markdown("**Assumptions:**")
-                for a in gift["assumptions"]:
-                    st.caption(f"• {a}")
+                if gift.get("assumptions"):
+                    st.markdown("**Assumptions:**")
+                    for a in gift["assumptions"]:
+                        st.caption(f"• {a}")
 
     st.divider()
 
@@ -197,14 +203,20 @@ if "result" in st.session_state:
 
         with col1:
             if st.button("✅ Approve", type="primary"):
-                requests.post(f"{API_URL}/review/{run_id}?action=approve")
+                requests.post(
+                    f"{API_URL}/review/{run_id}?action=approve",
+                    params={"notes": notes} if notes else {}
+                )
                 st.session_state["result"]["human_review"]["status"] = "approved"
                 st.success("Recommendations approved!")
                 st.rerun()
 
         with col2:
             if st.button("❌ Reject"):
-                requests.post(f"{API_URL}/review/{run_id}?action=reject")
+                requests.post(
+                    f"{API_URL}/review/{run_id}?action=reject",
+                    params={"notes": notes} if notes else {}
+                )
                 st.session_state["result"]["human_review"]["status"] = "rejected"
                 st.error("Recommendations rejected")
                 st.rerun()
@@ -213,21 +225,23 @@ if "result" in st.session_state:
             if st.button("🔄 Regenerate"):
                 if not notes:
                     st.warning("Add notes above to guide regeneration — otherwise results will be similar")
-            else:
-                with st.spinner("Regenerating with your feedback..."):
-                    r = requests.post(
-                    f"{API_URL}/review/{run_id}?action=regenerate",
-                    params={"notes": notes}
-                )
-                new_result = r.json()
-                st.session_state["result"] = new_result
-                st.success("Regenerated with feedback!")
-                st.rerun()
+                else:
+                    with st.spinner("Regenerating with your feedback..."):
+                        r = requests.post(
+                            f"{API_URL}/review/{run_id}?action=regenerate",
+                            params={"notes": notes}
+                        )
+                        new_result = r.json()
+                        st.session_state["result"] = new_result
+                        st.session_state["run_id"] = new_result.get("run_id", run_id)
+                        st.success("Regenerated with feedback!")
+                        st.rerun()
 
         with col4:
             if st.button("💾 Save Notes") and notes:
                 requests.post(
-                    f"{API_URL}/review/{run_id}?action=edit&notes={notes}"
+                    f"{API_URL}/review/{run_id}?action=edit",
+                    params={"notes": notes}
                 )
                 st.session_state["result"]["human_review"]["reviewer_notes"] = notes
                 st.success("Notes saved!")
@@ -237,6 +251,12 @@ if "result" in st.session_state:
 
     elif current_status == "rejected":
         st.error("❌ These recommendations were rejected")
+
+    # Errors
+    if result.get("errors"):
+        with st.expander("⚠️ Errors"):
+            for e in result["errors"]:
+                st.error(e)
 
     # Raw JSON toggle
     with st.expander("🔧 View Raw JSON Output"):

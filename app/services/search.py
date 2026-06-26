@@ -1,137 +1,79 @@
-from serpapi import GoogleSearch
-from dotenv import load_dotenv
-import os
-import urllib.parse
-
-load_dotenv()
-
-
-def build_fallback_url(title: str, store: str) -> str:
-    """
-    Build a direct search URL on Amazon or Flipkart
-    when SerpAPI doesn't return a direct link.
-    """
-    encoded = urllib.parse.quote_plus(title)
-
-    store_lower = store.lower()
-
-    if "amazon" in store_lower:
-        return f"https://www.amazon.in/s?k={encoded}"
-    elif "flipkart" in store_lower:
-        return f"https://www.flipkart.com/search?q={encoded}"
-    else:
-        return f"https://www.google.com/search?tbm=shop&q={encoded}"
-
-
-def search_products(query: str, country: str = "in") -> list:
-    try:
-        params = {
-            "engine": "google",
-            "q": query + " buy online",
-            "gl": country,
-            "hl": "en",
-            "tbm": "shop",
-            "num": 10,
-            "api_key": os.getenv("SERPAPI_KEY")
-        }
-
-        search = GoogleSearch(params)
-        results = search.get_dict()
-        shopping_results = results.get("shopping_results", [])
-
-        products = []
-        for item in shopping_results[:5]:
-            title = item.get("title", "")
-            store = item.get("source", "")
-
-            url = (
-                item.get("link") or
-                item.get("product_link") or
-                item.get("source_url") or
-                ""
-            )
-
-            if not url or "google.com/search" in url:
-                url = build_fallback_url(title, store)
-
-            products.append({
-                "title": title,
-                "url": url,
-                "store": store,
-                "price_raw": item.get("price", ""),
-                "snippet": item.get("snippet", ""),
-            })
-
-        return products
-
-    except Exception as e:
-        print(f"   Search error: {e}")
-        return []
-
-
-def generate_search_queries(signals: dict, gift_context: dict, retry_attempt: int = 0) -> list:
+def generate_search_queries(
+    signals: dict,
+    gift_context: dict,
+    retry_attempt: int = 0,
+    reviewer_feedback: str = ""
+) -> list:
     budget_min = gift_context["budget_min"]
     budget_max = gift_context["budget_max"]
-    currency = gift_context["currency"]
     strong = signals.get("strong_signals", [])
     weak = signals.get("weak_signals", [])
 
+    # If reviewer gave specific product feedback, search for that first
+    feedback_queries = _feedback_queries(reviewer_feedback, budget_min, budget_max)
+
     if retry_attempt == 0:
-        return _primary_queries(strong, weak, budget_min, budget_max)
-    if retry_attempt == 1:
-        return _broader_queries(strong, weak, budget_min, budget_max)
-    return _aggressive_queries(strong, budget_min, budget_max)
+        base = _primary_queries(strong, weak, budget_min, budget_max)
+    elif retry_attempt == 1:
+        base = _broader_queries(strong, weak, budget_min, budget_max)
+    else:
+        base = _aggressive_queries(strong, budget_min, budget_max)
+
+    # Feedback queries go first, then fill remaining slots with base queries
+    combined = feedback_queries + [q for q in base if q not in feedback_queries]
+    return combined[:4]
 
 
-def _primary_queries(strong: list, weak: list, budget_min: float, budget_max: float) -> list:
-    queries = []
+def _feedback_queries(reviewer_feedback: str, budget_min: float, budget_max: float) -> list:
+    """
+    Use LLM to extract specific search queries from reviewer feedback.
+    Dynamic — works for any product type the reviewer mentions.
+    """
+    if not reviewer_feedback or not reviewer_feedback.strip():
+        return []
 
-    if any("cricket" in s.lower() for s in strong):
-        queries.append(f"premium cricket gift hamper India {budget_min} to {budget_max} INR")
-        queries.append(f"cricket memorabilia luxury gift box India {budget_max} rupees")
+    try:
+        from app.services.llm import get_llm
+        from langchain_core.prompts import ChatPromptTemplate
+        import json
 
-    if any("leadership" in s.lower() or "book" in s.lower() or "saas" in s.lower() or "gtm" in s.lower() or "sales" in s.lower() for s in strong):
-        queries.append(f"executive leadership gift hamper India {budget_min} to {budget_max} rupees")
+        prompt = ChatPromptTemplate.from_template("""
+You are a search query generator for a gift recommendation system.
 
-    if any("coffee" in s.lower() for s in strong + weak):
-        queries.append(f"premium coffee gift set India {budget_min} to {budget_max} rupees")
+A human reviewer left this feedback about gift recommendations:
+"{feedback}"
 
-    if any("trek" in s.lower() or "hik" in s.lower() for s in strong + weak):
-        queries.append(f"premium trekking gift set India {budget_max} rupees")
+Budget range: {budget_min} to {budget_max} INR
+Country: India
 
-    if any("design" in s.lower() for s in strong + weak):
-        queries.append(f"design thinking premium book gift set India {budget_max} rupees")
+Generate 1-2 specific Google Shopping search queries to find the exact type of 
+products the reviewer is asking for. Queries should target Amazon.in or Flipkart.
 
-    queries.append(f"luxury corporate gift hamper India {budget_min} to {budget_max} rupees Amazon Flipkart")
+Return ONLY a JSON array of query strings. No explanation. Example:
+["electric kettle gift India under 3000 rupees", "coffee maker gift India 2000 to 4000 rupees"]
+""")
 
-    return queries[:4]
+        llm = get_llm()
+        chain = prompt | llm
+        response = chain.invoke({
+            "feedback": reviewer_feedback.strip(),
+            "budget_min": budget_min,
+            "budget_max": budget_max
+        })
 
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
 
-def _broader_queries(strong: list, weak: list, budget_min: float, budget_max: float) -> list:
-    """Retry 1: broader premium queries with explicit store and price anchors."""
-    mid = int((budget_min + budget_max) / 2)
-    queries = [
-        f"luxury gift hamper under {budget_max} rupees Amazon India",
-        f"premium executive gift set {mid} rupees India buy online",
-        f"corporate thank you gift box {budget_min} INR India",
-    ]
+        queries = json.loads(raw)
+        if isinstance(queries, list):
+            print(f"   Feedback-driven queries: {queries}")
+            return queries[:2]
 
-    if any("cricket" in s.lower() for s in strong):
-        queries.append(f"premium cricket bat signed memorabilia gift {budget_max} rupees India")
+    except Exception as e:
+        print(f"   Feedback query generation failed: {e}")
 
-    return queries[:4]
-
-
-def _aggressive_queries(strong: list, budget_min: float, budget_max: float) -> list:
-    """Retry 2: price-tier targeted queries when budget fit is still poor."""
-    queries = [
-        f"gift set {budget_min} rupees India buy online premium",
-        f"luxury hamper {budget_max} INR Flipkart corporate gift",
-        f"executive gift box India price {budget_min} to {budget_max}",
-    ]
-
-    for signal in strong[:2]:
-        topic = signal.split()[0] if signal else "professional"
-        queries.append(f"premium {topic} gift India {budget_max} rupees")
-
-    return queries[:4]
+    return []

@@ -122,19 +122,20 @@ if "result" in st.session_state:
             st.markdown(f"- {s}")
 
     with col3:
-        st.markdown("**🚫 Signals to Avoid**")
-        for s in signals.get("signals_to_avoid", []):
-            st.markdown(f"- {s}")
-
-    st.divider()
-
-    learning = result.get("learning_context", {})
-    if learning.get("historical_feedback_applied"):
-        st.info(
-            f"**Learning memory active** — {learning['feedback_entries_count']} past review(s) "
-            f"for this contact are shaping this run"
-            + (f" (last: {learning.get('last_action')})" if learning.get("last_action") else "")
-        )
+    if st.button("🔄 Regenerate"):
+        if not notes:
+            st.warning("Add notes above to guide regeneration — otherwise results will be similar")
+        else:
+            with st.spinner("Regenerating with your feedback..."):
+                r = requests.post(
+                    f"{API_URL}/review/{run_id}?action=regenerate",
+                    params={"notes": notes}
+                )
+                new_result = r.json()
+                st.session_state["result"] = new_result
+                st.session_state["run_id"] = new_result.get("run_id", run_id)
+                st.success("Regenerated with feedback!")
+                st.rerun()
 
     # Search Trace
     st.subheader("🔎 Search Trace")

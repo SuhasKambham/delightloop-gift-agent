@@ -1,49 +1,74 @@
-# Rollback Guide
+# Change And Rollback Notes
 
-Git was initialized in this repo. To enable commits, configure your identity once:
+This repository is Git-backed. Before pushing, confirm no secrets or runtime data are staged:
 
 ```bash
-git config user.email "you@example.com"
-git config user.name "Your Name"
+git status
 ```
 
-## Changes by fix (revert individually if needed)
+Do not commit:
 
-### Fix 1 — Ranking prompt (`app/workflow/nodes/rank.py`)
-- Budget-aware ranking with out-of-budget penalty (confidence ≤ 0.3)
-- Specific message rules (no generic "Dear X, I wanted to thank you")
-- Signal-grounded reasoning (no meta-commentary)
-- JSON parse retry + deterministic fallback ranking
+- `.env`
+- `venv/`
+- `__pycache__/`
+- `.pytest_cache/`
+- `data/feedback_memory.json`
 
-### Fix 2 — Conditional search retry (`app/workflow/graph.py`, `nodes/search.py`, `nodes/validate.py`, `services/search.py`)
-- LangGraph conditional edge: if < 3 validated products, retry search (up to 2 retries)
-- Alternate query strategies per retry attempt
-- Product deduplication across retries
+## Current Prototype Capabilities
 
-### Fix 3 — Reviewer feedback loop (`app/main.py`, `nodes/rank.py`, `nodes/signals.py`, `ui/review_app.py`)
-- Regenerate passes reviewer notes into signal extraction and ranking prompts
-- UI notes field wired to regenerate
 
-### Fix 4 — LangSmith + validation (`app/services/llm.py`, `app/utils/validators.py`)
-- LangSmith auto-enabled when `LANGCHAIN_API_KEY` is set
-- Budget validation tightened from 80% to 95% of `budget_min`
+| Area               | Files                                                       | Notes                                                                       |
+| ------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
+| FastAPI routes     | `app/main.py`                                               | Single contact, bulk contact, review, feedback, and result lookup endpoints |
+| LangGraph workflow | `app/workflow/graph.py`                                     | Six-node workflow with conditional search retry                             |
+| Signal extraction  | `app/workflow/nodes/signals.py`                             | Groq LLM extracts strong, weak, and avoided signals                         |
+| Search planning    | `app/services/search.py`                                    | Groq LLM creates search plans; fallback query planner exists                |
+| Product search     | `app/workflow/nodes/search.py`                              | SerpAPI Google Shopping search with deduplication                           |
+| Validation         | `app/workflow/nodes/validate.py`, `app/utils/validators.py` | Price, URL, and professional appropriateness checks                         |
+| Ranking            | `app/workflow/nodes/rank.py`                                | Signal scoring plus LLM ranking; deterministic fallback on parse failure    |
+| Review loop        | `app/workflow/nodes/review.py`, `app/main.py`               | Approve, reject, edit, and regenerate actions                               |
+| Learning memory    | `app/services/feedback_memory.py`                           | Persists reviewer feedback per contact                                      |
+| UI                 | `ui/review_app.py`                                          | Streamlit review app currently targeting the Render API                     |
+| Tests              | `tests/test_feedback_memory.py`                             | Unit tests for persistent feedback behavior                                 |
 
-## Quick test
+
+
+
+## Rollback Strategy
+
+Use Git to inspect and selectively revert changes if needed:
 
 ```bash
-# Terminal 1
-uvicorn app.main:app --reload
+git diff
+git restore path/to/file
+```
 
-# Terminal 2
+Avoid broad resets unless you intentionally want to discard all local work.
+
+## Quick Verification
+
+Run the no-key tests:
+
+```bash
+pytest tests/ -q
+```
+
+Run the full workflow after adding `GROQ_API_KEY` and `SERPAPI_KEY`:
+
+```bash
 python test_schema.py
-pytest tests/test_feedback_memory.py -q
-
-# curl (use single contact, not array)
-curl -X POST http://127.0.0.1:8000/recommend -H "Content-Type: application/json" -d @sample_input/contact_single.json
 ```
 
-## Fix 5 — Persistent learning memory (`app/services/feedback_memory.py`)
+Run the API locally:
 
-- Saves approve/reject/regenerate/edit notes to `data/feedback_memory.json`
-- Future `/recommend` runs for the same contact inject past feedback into prompts
-- LangSmith scores traces on approve (+1) / reject (0) via `app/services/tracing.py`
+```bash
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Run the UI locally:
+
+```bash
+streamlit run ui/review_app.py
+```
+
+For local UI testing, set `API_URL` in `ui/review_app.py` to `http://127.0.0.1:8000`.

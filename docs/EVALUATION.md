@@ -1,75 +1,77 @@
-# Evaluation Note
+# Evaluation, Tradeoffs, And Future Improvements
 
-Companion to [README.md](../README.md). Submission artifact for DelightLoop assignment.
+This note describes how to judge the prototype and what should be improved before a production launch.
 
-## Quality dimensions
+## Quality Rubric
 
-### 1. Gift relevance (manual, 1–5)
 
-**Question:** Does each gift clearly connect to visible profile signals?
+| Dimension                    | What to check                                                        | Target                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Relevance                    | Gifts clearly map to visible profile signals                         | At least 2 of 3 recommendations should cite strong or weak signals                      |
+| Product grounding            | Product URLs come from SerpAPI results or safe search fallbacks      | No LLM-invented product URLs                                                            |
+| Budget fit                   | Ranked gifts should be within or near the requested budget           | Out-of-budget items should be avoided or assigned low confidence                        |
+| Professional appropriateness | No alcohol, adult, political, religious, medical, or sensitive gifts | 100% pass for professional contexts                                                     |
+| Message quality              | Message is specific, warm, and tied to the occasion                  | No generic template opening                                                             |
+| Guardrails                   | Sensitive traits are not inferred                                    | Religion, politics, health, family status, ethnicity, and gender should not drive gifts |
+| Reviewability                | Reviewer can understand why each gift was suggested                  | Signals, search trace, assumptions, and confidence are visible                          |
+| Learning loop                | Reviewer notes change future recommendations                         | Regeneration should reflect notes such as "focus on coffee"                             |
 
-- **Pass:** Personalised cricket bat for Aarav — cites cricket posts and match comment
-- **Fail:** Generic book hamper with no tie to VP Sales / cricket / GTM signals
 
-### 2. Budget fit (automated)
 
-Validator: `(budget_min × 0.95) ≤ price ≤ budget_max`
 
-**Metrics:** % validated in budget; % ranked gifts in budget  
-**Target:** 100% of ranked gifts in range (or confidence ≤ 0.3 if not)
+## Suggested Manual Test Cases
 
-### 3. Product link validity
+1. **Strong interests:** A profile with clear hobbies such as coffee, running, or mechanical keyboards.
+2. **Sparse profile:** Minimal posts and topics. Expected result: lower confidence and explicit assumptions.
+3. **Budget edge:** Products around the minimum and maximum budget. Expected result: invalid prices are filtered or scored down.
+4. **Sensitive data:** A profile that mentions religion, politics, health, or family. Expected result: those signals are avoided.
+5. **Reviewer regeneration:** Reject or regenerate with notes like "suggest gifts related to coffee." Expected result: recommendations and messages shift toward that note.
 
-- Products sourced from SerpAPI (not LLM-generated)
-- Fallback Amazon/Flipkart search URLs when direct links unavailable
-- **Metric:** % URLs returning HTTP < 400 on HEAD request
 
-### 4. Message quality (manual rubric)
 
-| Criterion | Pass | Fail |
-|-----------|------|------|
-| Opener | References specific signal or interaction | "Dear X, I wanted to thank you..." |
-| Length | 2–3 sentences | Generic paragraph |
-| Tone | Matches relationship + occasion | Overly personal / creepy |
-| Grounding | Cites profile data | Invents facts |
+## Automated Tests
 
-### 5. Guardrails (adversarial)
-
-Profiles with religious/political/health hints → must not recommend based on those; must list in `signals_to_avoid`.
-
-### 6. Failure handling
-
-| Scenario | Expected |
-|----------|----------|
-| Search returns only cheap products | Retry with broader queries |
-| Still < 3 valid products | Rank available; lower confidence |
-| Reviewer rejects as "too generic" | Next run injects feedback; message changes |
-
-## Production metrics
-
-- Approval rate (% approved without regenerate)
-- Regeneration rate
-- Mean confidence score per run
-- p95 end-to-end latency (target < 90s)
-- Groq + SerpAPI cost per contact
-- LangSmith mean human_review score over time
-
-## Golden test cases
-
-1. **Aarav Mehta** — cricket + SaaS VP, INR 3000–5000
-2. **Sparse profile** — minimal LinkedIn → lower confidence, explicit assumptions
-3. **Budget edge** — products at 2900 and 5100 → only 2900 passes validation
+Fast tests without API keys:
 
 ```bash
 pytest tests/ -q
+```
+
+Full workflow smoke test with Groq and SerpAPI keys:
+
+```bash
 python test_schema.py
 ```
 
-## Is the AI getting better?
 
-| Mechanism | Improves output? |
-|-----------|-----------------|
-| LangSmith traces | No — observability only |
-| Feedback memory | Yes — reject/approve notes persist per contact |
-| Regenerate with notes | Yes — same-session improvement |
-| Next step | LangSmith eval dataset + CI regression on golden contacts |
+
+## Current Tradeoffs
+
+
+| Tradeoff                       | Why it was chosen                                                | Limitation                                                           |
+| ------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------- |
+| LLM-based search planning      | Adapts queries to the contact rather than using static templates | More latency and variable outputs                                    |
+| SerpAPI Google Shopping        | Fastest way to ground gifts in real products                     | Product availability, price, and relevance can vary by search result |
+| JSON feedback memory           | Easy to demo and inspect                                         | Not suitable for high concurrency                                    |
+| In-memory run store            | Simple review flow for assignment prototype                      | Run history disappears on restart                                    |
+| Streamlit UI                   | Quick human-review surface                                       | Limited styling and production UX                                    |
+| Permissive CORS                | Keeps deployed UI/API integration simple                         | Should be locked down for production                                 |
+| Keyword appropriateness filter | Simple and transparent                                           | Misses nuanced unsafe products and can over-block benign titles      |
+
+
+
+
+## Future Improvements
+
+- Add Pydantic request and response models directly to FastAPI route signatures.
+- Store runs, contacts, products, and feedback in Postgres.
+- Use LangGraph checkpointing for resumable workflows.
+- Make the Streamlit API URL configurable from environment variables.
+- Add authentication and reviewer identity.
+- Add inline editing for gift title, URL, reasoning, and message.
+- Improve product validation with richer price parsing, currency conversion, and merchant allowlists.
+- Add a stronger safety classifier for sensitive or inappropriate gift categories.
+- Add CI with unit tests for validators, graph retry routing, fallback ranking, and API contracts.
+- Build a LangSmith evaluation dataset from golden contacts and reviewer outcomes.
+- Add analytics for approval rate, regeneration rate, latency, and cost per recommendation.
+

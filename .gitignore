@@ -8,3 +8,4 @@ _assignment.txt
 *.egg-info/
 .DS_Store
 data/feedback_memory.json
+assignment/

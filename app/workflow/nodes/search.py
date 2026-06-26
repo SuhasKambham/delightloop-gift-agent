@@ -24,8 +24,8 @@ def search_products_node(state: GraphState) -> GraphState:
         reviewer_feedback = state.get("reviewer_feedback", "")
 
         queries = generate_search_queries(
-            contact=state["contact"],
-            signals=signals,
+            signals,
+            gift_context,
             retry_attempt=retry_count,
             reviewer_feedback=reviewer_feedback
         )

@@ -2,8 +2,8 @@ import streamlit as st
 import requests
 import json
 
-#uvicorn app.main:app --reload --host 127.0.0.1 --port 8000API_URL = "https://delightloop-gift-agent.onrender.com"
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://delightloop-gift-agent.onrender.com"
+#API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
     page_title="DelightLoop Gift Agent",

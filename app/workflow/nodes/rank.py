@@ -1,5 +1,6 @@
 from app.workflow.state import GraphState
 from app.services.llm import get_llm
+from app.services.search import score_product_signal_match
 from langchain_core.prompts import ChatPromptTemplate
 import json
 import re
@@ -29,27 +30,32 @@ Strong: {strong_signals}
 Weak: {weak_signals}
 Avoid: {signals_to_avoid}
 
-VALIDATED PRODUCTS (each line shows whether price is in budget):
+VALIDATED PRODUCTS:
 {products}
 
 RANKING RULES:
-- Pick the top 3 DISTINCT gifts from the products list (never rank the same product twice)
+- Pick the top 3 DISTINCT gifts from the products list.
+- Prefer products with the highest Signal Match Score.
+- The product must directly match at least one strong or weak profile signal.
+- Do not invent a connection between a product and a signal.
+- Generic hampers, vague gift boxes, and executive gift sets should be ranked only if there are no specific signal-matched products.
+- Relationship context should affect tone, budget, and formality, not override the recipient's actual interests.
 - Heavily penalise any product priced outside {currency} {budget_min}–{budget_max}.
-  Out-of-budget products must score confidence <= 0.3 regardless of relevance.
-- Prefer in-budget products; if fewer than 3 exist, rank what you have and lower overall confidence.
-- Confidence must reflect data quality: sparse signals or weak product matches → lower scores.
+- Out-of-budget products must score confidence <= 0.3 regardless of relevance.
+- Prefer in-budget products; if fewer than 3 exist, rank what you have and lower confidence.
+- Confidence must reflect product match quality, price fit, and data quality.
 
-REASONING RULES (why_this_gift and personalisation_reasoning):
-- Reference specific profile signals by name (e.g. cricket posts, GTM leadership, last discovery call).
-- Explain why THIS product fits THIS person — not generic meta-commentary like "shows we understand their hobbies".
-- Never infer religion, politics, health, family status, or ethnicity.
+REASONING RULES:
+- Reference the exact matched signal and gift category shown for the product.
+- Explain why THIS product fits THIS person.
+- Never claim a product matches a signal unless the product title, category, or snippet supports that connection.
+- Never infer religion, politics, health, family status, ethnicity, or gender.
 
-MESSAGE RULES (personalised_message):
+MESSAGE RULES:
 - Write 2–3 sentences maximum, warm and professional.
-- Open with something specific to THIS contact — their cricket passion, VP Sales role, or the discovery call.
-- NEVER open with "Dear {name}, I wanted to thank you" or similar generic corporate openers.
-- Mention one concrete signal from their profile naturally (a post topic, engaged topic, or business goal).
-- Tie the gift to that signal so the note feels written by someone who actually knows them.
+- Open with something specific to THIS contact.
+- Mention one concrete signal naturally.
+- Tie the gift to that signal.
 - Match tone to the relationship ({relationship_type}) and occasion ({occasion}).
 
 Return ONLY valid JSON in this exact format:
@@ -77,62 +83,101 @@ Return ONLY valid JSON in this exact format:
 
 def _parse_llm_json(raw: str) -> dict:
     text = raw.strip()
+
     if text.startswith("```"):
         text = text.split("```")[1]
+
         if text.startswith("json"):
             text = text[4:]
+
         text = text.strip()
+
     match = re.search(r"\{[\s\S]*\}", text)
+
     if match:
         text = match.group(0)
+
     return json.loads(text)
 
 
 def _fallback_rank(validated_products: list, contact: dict, signals: dict) -> list:
-    """Deterministic ranking when LLM output fails."""
     name = contact["name"].split()[0]
     strong = signals.get("strong_signals", [])
     signal_hint = strong[0] if strong else "your professional interests"
 
     gifts = []
-    for i, p in enumerate(validated_products[:3]):
+
+    for index, product in enumerate(validated_products[:3]):
+        matched_signal = product.get("matched_signal") or signal_hint
+        gift_category = product.get("gift_category") or "gift"
+
         gifts.append({
-            "rank": i + 1,
-            "gift_name": p["title"],
-            "product_url": p["url"],
-            "store": p.get("store", ""),
-            "estimated_price": p.get("price_raw", ""),
-            "why_this_gift": f"Matches {signal_hint} and fits the stated budget.",
-            "personalisation_reasoning": f"Selected from validated products based on: {', '.join(strong[:2]) or 'professional context'}.",
-            "personalised_message": (
-                f"Hi {name}, our conversation stuck with me — especially your take on "
-                f"{signal_hint.lower()}. Hope this gift resonates. Looking forward to our next chat."
+            "rank": index + 1,
+            "gift_name": product["title"],
+            "product_url": product["url"],
+            "store": product.get("store", ""),
+            "estimated_price": product.get("price_raw", ""),
+            "why_this_gift": (
+                f"This product was retrieved for {matched_signal} and fits the "
+                f"{gift_category} category within the stated budget."
             ),
-            "confidence_score": 0.55,
+            "personalisation_reasoning": (
+                f"Selected because it directly connects to {matched_signal}, one of "
+                "the extracted profile signals."
+            ),
+            "personalised_message": (
+                f"Hi {name}, your interest in {matched_signal.lower()} stood out, "
+                f"so I thought this would be a thoughtful way to mark the occasion. "
+                "Appreciate the partnership and look forward to what we build next."
+            ),
+            "confidence_score": 0.6,
             "risk_level": "medium",
-            "assumptions": ["Fallback ranking used because LLM parse failed"],
+            "assumptions": ["Fallback ranking used because LLM parsing failed"],
         })
+
     return gifts
 
 
 def _format_reviewer_feedback(reviewer_feedback: str | None) -> str:
     if not reviewer_feedback or not reviewer_feedback.strip():
         return ""
-    return f"""⚠️ CRITICAL INSTRUCTION — REVIEWER FEEDBACK MUST BE ADDRESSED FIRST:
+
+    return f"""CRITICAL REVIEWER FEEDBACK:
 {reviewer_feedback.strip()}
 
 You MUST change your recommendations based on the above feedback.
-If reviewer said suggestions were too generic — write hyper-specific messages.
-If reviewer asked for different suggestions — pick completely different products.
+If reviewer said suggestions were too generic, choose more specific signal-matched products.
 Do NOT repeat the same gifts or messages from previous runs.
-Ignoring this feedback will result in rejection.
 """
+
+
+def _prepare_ranked_products(validated_products: list, signals: dict) -> list:
+    strong_signals = signals.get("strong_signals", [])
+    weak_signals = signals.get("weak_signals", [])
+
+    for product in validated_products:
+        product["signal_match_score"] = score_product_signal_match(
+            product,
+            strong_signals,
+            weak_signals,
+        )
+
+    return sorted(
+        validated_products,
+        key=lambda product: (
+            product.get("signal_match_score", 0),
+            1 if product.get("is_price_in_budget") else 0,
+            product.get("price_numeric", 0),
+        ),
+        reverse=True,
+    )
 
 
 def rank_gifts(state: GraphState) -> GraphState:
     print(">> Step 5: Ranking gifts...")
 
     reviewer_feedback = state.get("reviewer_feedback", "")
+
     if reviewer_feedback:
         print(f"   Reviewer feedback injected: {reviewer_feedback[:100]}...")
     else:
@@ -149,19 +194,26 @@ def rank_gifts(state: GraphState) -> GraphState:
 
         contact = state["contact"]
         signals = state["profile_signals"]
-        gift_ctx = contact["gift_context"]
-        rel_ctx = contact["relationship_context"]
+        gift_context = contact["gift_context"]
+        relationship_context = contact["relationship_context"]
+
+        validated_products = _prepare_ranked_products(validated_products, signals)
 
         products_str = ""
-        for i, p in enumerate(validated_products):
-            budget_flag = "IN BUDGET" if p.get("is_price_in_budget") else "OUT OF BUDGET"
+
+        for index, product in enumerate(validated_products):
+            budget_flag = "IN BUDGET" if product.get("is_price_in_budget") else "OUT OF BUDGET"
+
             products_str += f"""
-Product {i + 1} [{budget_flag}]:
-  Title: {p['title']}
-  Store: {p['store']}
-  Price: {p['price_raw']} (numeric: {p.get('price_numeric', 'unknown')})
-  URL: {p['url']}
-  Snippet: {p.get('snippet', '')}
+Product {index + 1} [{budget_flag}]:
+  Title: {product['title']}
+  Store: {product['store']}
+  Price: {product['price_raw']} (numeric: {product.get('price_numeric', 'unknown')})
+  URL: {product['url']}
+  Matched Signal: {product.get('matched_signal', '')}
+  Gift Category: {product.get('gift_category', '')}
+  Signal Match Score: {product.get('signal_match_score', 0)}
+  Snippet: {product.get('snippet', '')}
 """
 
         llm = get_llm()
@@ -172,13 +224,13 @@ Product {i + 1} [{budget_flag}]:
             "name": contact["name"],
             "role": contact["role"],
             "company": contact["company"],
-            "occasion": gift_ctx["occasion"],
-            "relationship_type": rel_ctx["relationship_type"],
-            "last_interaction": rel_ctx.get("last_interaction", "Not specified"),
-            "business_goal": rel_ctx.get("business_goal", ""),
-            "currency": gift_ctx["currency"],
-            "budget_min": gift_ctx["budget_min"],
-            "budget_max": gift_ctx["budget_max"],
+            "occasion": gift_context["occasion"],
+            "relationship_type": relationship_context["relationship_type"],
+            "last_interaction": relationship_context.get("last_interaction", "Not specified"),
+            "business_goal": relationship_context.get("business_goal", ""),
+            "currency": gift_context["currency"],
+            "budget_min": gift_context["budget_min"],
+            "budget_max": gift_context["budget_max"],
             "strong_signals": ", ".join(signals.get("strong_signals", [])),
             "weak_signals": ", ".join(signals.get("weak_signals", [])),
             "signals_to_avoid": ", ".join(signals.get("signals_to_avoid", [])),
@@ -188,23 +240,29 @@ Product {i + 1} [{budget_flag}]:
 
         gifts = []
         last_error = None
+
         for attempt in range(2):
             response = chain.invoke(invoke_args)
             raw = response.content if hasattr(response, "content") else str(response)
+
             try:
                 result = _parse_llm_json(raw)
                 gifts = result.get("recommended_gifts", [])
+
                 if gifts:
                     break
+
             except (json.JSONDecodeError, AttributeError) as e:
                 last_error = e
                 print(f"   Ranking parse attempt {attempt + 1} failed: {e}")
+
                 if raw:
                     print(f"   Raw response preview: {raw[:200]}...")
 
         if not gifts:
             print("   Using fallback deterministic ranking")
             gifts = _fallback_rank(validated_products, contact, signals)
+
             if last_error:
                 state["errors"].append(f"ranking_fallback: LLM parse failed ({last_error})")
 
@@ -212,8 +270,12 @@ Product {i + 1} [{budget_flag}]:
         state["current_step"] = "rank_gifts"
 
         print(f"   Ranked {len(gifts)} gifts successfully")
-        for g in gifts:
-            print(f"   Rank {g['rank']}: {g['gift_name']} — confidence: {g['confidence_score']}")
+
+        for gift in gifts:
+            print(
+                f"   Rank {gift['rank']}: {gift['gift_name']} "
+                f"— confidence: {gift['confidence_score']}"
+            )
 
     except Exception as e:
         print(f"   ERROR in ranking: {e}")

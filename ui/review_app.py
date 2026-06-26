@@ -210,15 +210,18 @@ if "result" in st.session_state:
 
         with col3:
             if st.button("🔄 Regenerate"):
+                if not notes:
+                    st.warning("Add notes above to guide regeneration — otherwise results will be similar")
+            else:
                 with st.spinner("Regenerating with your feedback..."):
-                    params = {"action": "regenerate"}
-                    if notes:
-                        params["notes"] = notes
-                    r = requests.post(f"{API_URL}/review/{run_id}", params=params)
-                    new_result = r.json()
-                    st.session_state["result"] = new_result
-                    st.success("Regenerated!")
-                    st.rerun()
+                    r = requests.post(
+                    f"{API_URL}/review/{run_id}?action=regenerate",
+                    params={"notes": notes}
+                )
+                new_result = r.json()
+                st.session_state["result"] = new_result
+                st.success("Regenerated with feedback!")
+                st.rerun()
 
         with col4:
             if st.button("💾 Save Notes") and notes:

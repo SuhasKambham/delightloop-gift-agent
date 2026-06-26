@@ -20,6 +20,8 @@ Relationship: {relationship_type}
 Last Interaction: {last_interaction}
 Business Goal: {business_goal}
 
+{reviewer_feedback_section}
+
 BUDGET: {currency} {budget_min} to {budget_max} (strict — gifts must fall in this range)
 
 PROFILE SIGNALS:
@@ -29,8 +31,6 @@ Avoid: {signals_to_avoid}
 
 VALIDATED PRODUCTS (each line shows whether price is in budget):
 {products}
-
-{reviewer_feedback_section}
 
 RANKING RULES:
 - Pick the top 3 DISTINCT gifts from the products list (never rank the same product twice)
@@ -82,7 +82,6 @@ def _parse_llm_json(raw: str) -> dict:
         if text.startswith("json"):
             text = text[4:]
         text = text.strip()
-    # Extract outermost JSON object if model added prose
     match = re.search(r"\{[\s\S]*\}", text)
     if match:
         text = match.group(0)
@@ -119,14 +118,25 @@ def _fallback_rank(validated_products: list, contact: dict, signals: dict) -> li
 def _format_reviewer_feedback(reviewer_feedback: str | None) -> str:
     if not reviewer_feedback or not reviewer_feedback.strip():
         return ""
-    return f"""
-REVIEWER FEEDBACK (address this in your next recommendations):
+    return f"""⚠️ CRITICAL INSTRUCTION — REVIEWER FEEDBACK MUST BE ADDRESSED FIRST:
 {reviewer_feedback.strip()}
+
+You MUST change your recommendations based on the above feedback.
+If reviewer said suggestions were too generic — write hyper-specific messages.
+If reviewer asked for different suggestions — pick completely different products.
+Do NOT repeat the same gifts or messages from previous runs.
+Ignoring this feedback will result in rejection.
 """
 
 
 def rank_gifts(state: GraphState) -> GraphState:
     print(">> Step 5: Ranking gifts...")
+
+    reviewer_feedback = state.get("reviewer_feedback", "")
+    if reviewer_feedback:
+        print(f"   Reviewer feedback injected: {reviewer_feedback[:100]}...")
+    else:
+        print("   No reviewer feedback for this run")
 
     try:
         validated_products = state["validated_products"]
@@ -173,9 +183,7 @@ Product {i + 1} [{budget_flag}]:
             "weak_signals": ", ".join(signals.get("weak_signals", [])),
             "signals_to_avoid": ", ".join(signals.get("signals_to_avoid", [])),
             "products": products_str,
-            "reviewer_feedback_section": _format_reviewer_feedback(
-                state.get("reviewer_feedback")
-            ),
+            "reviewer_feedback_section": _format_reviewer_feedback(reviewer_feedback),
         }
 
         gifts = []

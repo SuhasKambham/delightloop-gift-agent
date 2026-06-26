@@ -16,14 +16,20 @@ def _dedupe_products(products: list) -> list:
 def search_products_node(state: GraphState) -> GraphState:
     retry_count = state.get("search_retry_count", 0)
     is_retry = retry_count > 0
-
     print(f">> Step 3: Searching for products{' (retry ' + str(retry_count) + ')' if is_retry else ''}...")
 
     try:
         signals = state["profile_signals"]
         gift_context = state["contact"]["gift_context"]
+        reviewer_feedback = state.get("reviewer_feedback", "")
 
-        queries = generate_search_queries(signals, gift_context, retry_attempt=retry_count)
+        queries = generate_search_queries(
+            signals,
+            gift_context,
+            retry_attempt=retry_count,
+            reviewer_feedback=reviewer_feedback
+        )
+
         print(f"   Queries generated: {queries}")
 
         new_products = []
@@ -47,7 +53,6 @@ def search_products_node(state: GraphState) -> GraphState:
 
         state["raw_products"] = all_products
         state["current_step"] = "search_products"
-
         print(f"   Found {len(all_products)} unique products total")
 
     except Exception as e:

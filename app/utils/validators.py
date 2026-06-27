@@ -16,7 +16,7 @@ def is_price_in_budget(price_numeric: float, budget_min: float, budget_max: floa
     if price_numeric <= 0:
         return False
     # Tight tolerance: allow 5% below min for rounding/shipping variance
-    return (budget_min * 0.5) <= price_numeric <= budget_max
+    return (budget_min * 0.95) <= price_numeric <= budget_max
 
 
 def is_url_valid(url: str) -> bool:

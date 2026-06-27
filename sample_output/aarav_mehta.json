@@ -1,0 +1,91 @@
+{
+    "run_id":"cb2bf21e-7526-4302-90d4-b287b106c849"
+    "contact_name":"Aarav Mehta"
+    "profile_signals":{
+    "strong_signals":[
+    0:"Cricket"
+    1:"SaaS and sales leadership books"
+    ]
+    "weak_signals":[
+    0:"Sports-themed items"
+    1:"Technology gadgets"
+    ]
+    "signals_to_avoid":[
+    0:"Do not infer religion, politics, health, family status, or ethnicity"
+    ]
+    }
+    "search_trace":{
+    "queries_used":[
+    0:"autographed cricket bat India 3000 to 5000 rupees Amazon Flipkart"
+    1:"signed cricket jersey India 3000 to 5000 rupees"
+    2:"SaaS sales and marketing books India 3000 to 5000 rupees Amazon Flipkart"
+    3:"SaaS industry magazine subscription India 3000 to 5000 rupees"
+    4:"sales leadership book set India 3000 to 5000 rupees Amazon Flipkart"
+    5:"premium audiobook subscription India 3000 to 5000 rupees"
+    ]
+    "products_considered_count":12
+    "search_retries":0
+    }
+    "recommended_gifts":[
+    0:{
+    "rank":1
+    "gift_name":"RSINC MS Dhoni Autographed Cricket Bat 16 inch Signature Wooden Display Cricket Bat"
+    "product_url":"https://www.amazon.in/s?k=RSINC+MS+Dhoni+Autographed+Cricket+Bat+16+inch+Signature+Wooden+Display+Cricket+Bat+%7C+Decorative+Autograph+Bat+for+Signatures%2C+Gifting%2C+Collectibles+%26"
+    "store":"amazon.in"
+    "estimated_price":"₹2,995"
+    "why_this_gift":"This autographed cricket bat is a unique gift that aligns with Aarav's strong interest in cricket, making it a thoughtful and personalized present."
+    "personalisation_reasoning":"The exact matched signal is Cricket, and the gift category is autographed cricket memorabilia or premium cricket equipment, which directly matches Aarav's profile signal."
+    "personalised_message":"Aarav, I wanted to thank you again for the positive discovery call last week. As a cricket enthusiast, I thought you'd appreciate this autographed MS Dhoni bat, a special addition to any cricket fan's collection. Looking forward to our next meeting."
+    "confidence_score":0.85
+    "risk_level":"low"
+    "assumptions":[
+    0:"Aarav will appreciate the autographed bat as a symbol of his interest in cricket"
+    ]
+    }
+    1:{
+    "rank":2
+    "gift_name":"Sales Management for Start-ups and SMEs"
+    "product_url":"https://www.amazon.in/s?k=Sales+Management+for+Start-ups+and+SMEs"
+    "store":"amazon.in"
+    "estimated_price":"₹3,709"
+    "why_this_gift":"This book on sales management is relevant to Aarav's role as VP Sales and his interest in SaaS, making it a practical and informative gift."
+    "personalisation_reasoning":"The exact matched signal is SaaS, and the gift category is SaaS industry books or technology-themed accessories, which aligns with Aarav's profile signal."
+    "personalised_message":"Aarav, I appreciated our discussion on sales strategies during our call. I think you'll find this book on sales management for start-ups and SMEs insightful, given your experience in SaaS and sales leadership."
+    "confidence_score":0.65
+    "risk_level":"medium"
+    "assumptions":[
+    0:"Aarav will find the book relevant to his work and interests"
+    ]
+    }
+    2:{
+    "rank":3
+    "gift_name":"Flipkart Seller's Handbook: Profit Boosting Strategies for Flipkart Sellers"
+    "product_url":"https://www.amazon.in/s?k=Flipkart+Seller%27s+Handbook%3A+Profit+Boosting+Strategies+for+Flipkart+Sellers"
+    "store":"amazon.in"
+    "estimated_price":"₹3,349"
+    "why_this_gift":"This handbook on Flipkart selling strategies is related to Aarav's interest in SaaS and sales, although it's a more specific and niche topic."
+    "personalisation_reasoning":"The exact matched signal is SaaS, and the gift category is SaaS industry books or technology-themed accessories, which partially aligns with Aarav's profile signal."
+    "personalised_message":"Aarav, as we discussed sales and e-commerce during our call, I thought you might be interested in this Flipkart Seller's Handbook, which offers strategies for boosting profits on the platform."
+    "confidence_score":0.55
+    "risk_level":"medium"
+    "assumptions":[
+    0:"Aarav will find the handbook relevant to his work in sales and SaaS"
+    ]
+    }
+    ]
+    "human_review":{
+    "status":"pending_review"
+    "available_actions":[
+    0:"approve"
+    1:"reject"
+    2:"edit"
+    3:"regenerate"
+    ]
+    "reviewer_notes":NULL
+    }
+    "learning_context":{
+    "historical_feedback_applied":false
+    "feedback_entries_count":0
+    }
+    "errors":[]
+    }

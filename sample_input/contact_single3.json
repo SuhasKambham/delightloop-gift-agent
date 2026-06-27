@@ -1,0 +1,36 @@
+{
+    "name": "Aarav Mehta",
+    "role": "VP Sales",
+    "company": "Acme Corp",
+    "location": "Bengaluru, India",
+    "linkedin_profile": {
+        "headline": "VP Sales at Acme Corp | Enterprise SaaS | GTM Leadership",
+        "about": "I enjoy building high-performing revenue teams and scaling SaaS businesses.",
+        "experience": [
+            {
+                "title": "VP Sales",
+                "company": "Acme Corp",
+                "description": "Leading enterprise sales and GTM expansion."
+            }
+        ],
+        "recent_posts": [
+            "Great sales teams are built on trust, coaching, and consistency.",
+            "Still recovering from yesterday's India vs Australia match. What a game!"
+        ],
+        "recent_comments": [
+            "Cricket teaches leadership better than most management books."
+        ],
+        "engaged_topics": ["Cricket", "Revenue leadership", "SaaS GTM"]
+    },
+    "relationship_context": {
+        "relationship_type": "Prospective customer",
+        "last_interaction": "Positive discovery call last week",
+        "business_goal": "Nurture relationship before follow-up meeting"
+    },
+    "gift_context": {
+        "occasion": "Post-meeting thank you",
+        "budget_min": 3000,
+        "budget_max": 5000,
+        "currency": "INR",
+        "country": "India"
+    }

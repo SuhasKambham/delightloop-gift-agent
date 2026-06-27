@@ -1,0 +1,101 @@
+{
+    "run_id":"cb2bf21e-7526-4302-90d4-b287b106c849"
+    "action":"regenerate"
+    "human_review":{
+    "status":"pending_review"
+    "available_actions":[
+    0:"approve"
+    1:"reject"
+    2:"edit"
+    3:"regenerate"
+    ]
+    "reviewer_notes":"Suggest cricket accessories within budget"
+    }
+    "recommended_gifts":[
+    0:{
+    "rank":1
+    "gift_name":"Cricket Bat SG KLR Spark"
+    "product_url":"https://www.amazon.in/s?k=Cricket+Bat+SG+KLR+Spark"
+    "store":"Amazon.in"
+    "estimated_price":"₹2,999"
+    "why_this_gift":"This cricket bat is a great fit for Aarav Mehta, given his strong interest in cricket, and will serve as a reminder of our positive discovery call."
+    "personalisation_reasoning":"The gift category 'cricket accessories and memorabilia' directly matches Aarav's strong signal for cricket, making it a thoughtful and relevant choice."
+    "personalised_message":"Aarav, I wanted to thank you again for the insightful discussion we had last week. As a cricket enthusiast, I thought you'd appreciate this Cricket Bat SG KLR Spark, a symbol of our growing connection and shared interests."
+    "confidence_score":0.9
+    "risk_level":"low"
+    "assumptions":[
+    0:"Aarav will appreciate a cricket-themed gift"
+    ]
+    }
+    1:{
+    "rank":2
+    "gift_name":"Sales Management for Start-ups and SMEs"
+    "product_url":"https://www.amazon.in/s?k=Sales+Management+for+Start-ups+and+SMEs"
+    "store":"amazon.in"
+    "estimated_price":"₹3,709"
+    "why_this_gift":"Although slightly above the ideal budget, this book aligns with Aarav's role as VP Sales and his interest in sales leadership books, making it a valuable resource for him."
+    "personalisation_reasoning":"The gift category 'premium sales and marketing books' matches Aarav's strong signal for sales leadership books, despite being a bit above the desired price range."
+    "personalised_message":"Aarav, as we discussed sales strategies during our call, I thought you might find 'Sales Management for Start-ups and SMEs' to be a useful addition to your library, helping you navigate the sales landscape."
+    "confidence_score":0.8
+    "risk_level":"medium"
+    "assumptions":[
+    0:"Aarav values sales strategy literature"
+    ]
+    }
+    2:{
+    "rank":3
+    "gift_name":"RSINC MS Dhoni Autographed Cricket Bat 16 inch Signature Wooden Display Cricket Bat"
+    "product_url":"Not provided"
+    "store":"Not provided"
+    "estimated_price":"Not provided"
+    "why_this_gift":"Given the strong signal for cricket and the autographed nature of this bat, it could be a unique gift for Aarav, but the lack of specific details and potential budget issues make it a less confident choice."
+    "personalisation_reasoning":"The connection to cricket, a strong signal for Aarav, is clear, but without more specifics on price and availability, this gift is less certain."
+    "personalised_message":"Aarav, as a token of appreciation for your time and considering your passion for cricket, a unique item like an autographed cricket bat by a legendary player could be a memorable gift, symbolizing our intent to build a strong relationship."
+    "confidence_score":0.4
+    "risk_level":"high"
+    "assumptions":[
+    0:"The gift's price and availability can be confirmed within the budget"
+    ]
+    }
+    ]
+    "profile_signals":{
+    "strong_signals":[
+    0:"Cricket"
+    1:"SaaS and sales leadership books"
+    ]
+    "weak_signals":[
+    0:"Sports-themed accessories"
+    1:"India-themed gifts"
+    ]
+    "signals_to_avoid":[
+    0:"Do not infer religion, politics, health, family status, or ethnicity"
+    ]
+    }
+    "search_trace":{
+    "queries_used":[
+    0:"autographed cricket bats India 3000 to 5000 rupees"
+    1:"cricket jersey signed by Indian cricketers 3000 to 5000 rupees"
+    2:"SaaS sales leadership books India 3000 to 5000 rupees Amazon Flipkart"
+    3:"sales management and marketing strategy books India 3000 to 5000 rupees"
+    4:"cricket bat signed by Indian cricketers 3000 to 5000 rupees Amazon Flipkart"
+    5:"cricket-themed display cases for bats or balls India 3000 to 5000 rupees"
+    6:"best-selling sales leadership books India 3000 to 5000 rupees Amazon Flipkart"
+    7:"SaaS industry books and subscriptions India 3000 to 5000 rupees"
+    8:"autographed cricket bats India 3000 to 5000 rupees"
+    9:"cricket bat display case with signature wooden frame India 3000 to 5000 rupees"
+    10:"sales leadership books for SaaS industry India 3000 to 5000 rupees"
+    11:"SaaS sales strategy books by Indian authors 3000 to 5000 rupees"
+    12:"premium sales and marketing books India 3000 to 5000 rupees Amazon Flipkart"
+    13:"sales management books for startups and SMEs India 3000 to 5000 rupees"
+    ]
+    "products_considered_count":16
+    "search_retries":2
+    }
+    "learning_context":{
+    "historical_feedback_applied":true
+    "feedback_entries_count":1
+    "last_action":"regenerate"
+    "last_notes":"Suggest cricket accessories within budget"
+    }
+    "errors":[]
+    }

@@ -29,6 +29,9 @@ Reviewer feedback: {reviewer_feedback}
 RULES:
 - Create search plans from the recipient's actual interests, not generic corporate gifting.
 - Strong signals should dominate the search plan.
+- Every query MUST target the provided budget range: {budget_min} to {budget_max} rupees.
+- Do NOT generate lower price ranges than {budget_min}.
+- For higher budgets, search for premium products, bundles, subscriptions, kits, or higher-end accessories.
 - Relationship context may affect price level and tone, but must NOT override product category.
 - Do NOT default to hampers, executive gift boxes, or generic corporate gifts unless there are no usable personal/professional signals.
 - For each strong signal, generate concrete purchasable gift categories.
@@ -45,8 +48,8 @@ Return this exact JSON shape:
       "matched_signal": "Mechanical Keyboards",
       "gift_category": "premium mechanical keyboard accessories",
       "queries": [
-        "premium mechanical keyboard accessories India 5000 to 9000 rupees Amazon Flipkart",
-        "Keychron wrist rest desk mat artisan keycaps India"
+        "premium mechanical keyboard accessories India {budget_min} to {budget_max} rupees Amazon Flipkart",
+        "Keychron wrist rest desk mat artisan keycaps India {budget_min} to {budget_max} rupees"
       ]
     }}
   ]
@@ -136,6 +139,36 @@ def _clean_llm_json(raw: str) -> str:
     return text
 
 
+def _enforce_budget_in_query(query: str, budget_min: int, budget_max: int) -> str:
+    """
+    Force LLM-generated search queries to respect the requested budget range.
+    The LLM can choose categories, but Python enforces the actual price band.
+    """
+    budget_text = f"{budget_min} to {budget_max} rupees"
+
+    # Replace explicit ranges like "1000 to 3000 rupees" or "1000-3000 INR".
+    query = re.sub(
+        r"\b\d{3,6}\s*(to|-)\s*\d{3,6}\s*(rupees|inr)?\b",
+        budget_text,
+        query,
+        flags=re.IGNORECASE,
+    )
+
+    # Replace under/upto language, e.g. "under 5000 rupees".
+    query = re.sub(
+        r"\b(under|below|upto|up to|less than)\s*\d{3,6}\s*(rupees|inr)?\b",
+        budget_text,
+        query,
+        flags=re.IGNORECASE,
+    )
+
+    # If the query has no price language at all, append the required range.
+    if "rupees" not in query.lower() and "inr" not in query.lower():
+        query = f"{query} {budget_text}"
+
+    return query.strip()
+
+
 def _fallback_search_plan(signals: dict, gift_context: dict) -> list[dict]:
     budget_min = int(gift_context["budget_min"])
     budget_max = int(gift_context["budget_max"])
@@ -176,8 +209,12 @@ def generate_search_plan_with_llm(
         if retry_attempt > 0:
             retry_instruction = (
                 f"Previous search attempt #{retry_attempt} did not produce enough "
-                "good products. Generate different, more specific product queries."
+                "good products. Generate different, more premium product queries "
+                "inside the requested budget range."
             )
+
+        budget_min = int(gift_context.get("budget_min", 0))
+        budget_max = int(gift_context.get("budget_max", 0))
 
         response = chain.invoke({
             "strong_signals": ", ".join(signals.get("strong_signals", [])),
@@ -185,8 +222,8 @@ def generate_search_plan_with_llm(
             "signals_to_avoid": ", ".join(signals.get("signals_to_avoid", [])),
             "occasion": gift_context.get("occasion", ""),
             "currency": gift_context.get("currency", "INR"),
-            "budget_min": gift_context.get("budget_min", ""),
-            "budget_max": gift_context.get("budget_max", ""),
+            "budget_min": budget_min,
+            "budget_max": budget_max,
             "country": gift_context.get("country", "India"),
             "relationship_type": relationship_context.get("relationship_type", ""),
             "business_goal": relationship_context.get("business_goal", ""),
@@ -216,6 +253,8 @@ def generate_search_plan_with_llm(
                 query = query.strip()
                 if not query:
                     continue
+
+                query = _enforce_budget_in_query(query, budget_min, budget_max)
 
                 if query.lower() in seen_queries:
                     continue
@@ -304,6 +343,7 @@ def score_product_signal_match(
         "keycap",
         "desk mat",
         "coffee",
+        "espresso",
         "aeropress",
         "grinder",
         "french press",
@@ -311,6 +351,11 @@ def score_product_signal_match(
         "architecture",
         "engineering",
         "running",
+        "cycling",
+        "camera",
+        "photography",
+        "tripod",
+        "lens",
         "foam roller",
         "massage",
         "hydration",

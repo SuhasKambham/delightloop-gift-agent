@@ -56,7 +56,7 @@ Return this exact JSON shape:
 }}
 """
 
-
+'''
 def build_fallback_url(title: str, store: str) -> str:
     encoded = urllib.parse.quote_plus(title)
     store_lower = store.lower()
@@ -67,7 +67,10 @@ def build_fallback_url(title: str, store: str) -> str:
         return f"https://www.flipkart.com/search?q={encoded}"
     else:
         return f"https://www.google.com/search?tbm=shop&q={encoded}"
-
+'''
+def build_fallback_url(title: str, store: str) -> str:
+    encoded = urllib.parse.quote_plus(title)
+    return f"https://www.google.com/search?tbm=shop&q={encoded}"
 
 def search_products(
     query: str,

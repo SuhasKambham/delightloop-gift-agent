@@ -113,7 +113,7 @@ streamlit run ui/review_app.py
 The current UI points to the deployed Render API:
 
 ```python
-API_URL = "https://delightloop-gift-agent.onrender.com"
+API_URL = "[https://delightloop-gift-agent.onrender.com](https://delightloop-gift-agent-1.onrender.com)"
 ```
 
 For local UI testing, change it in `ui/review_app.py` to:

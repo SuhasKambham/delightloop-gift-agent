@@ -1,28 +1,44 @@
-import streamlit as st
-import requests
 import json
+import time
+
+import requests
+import streamlit as st
 
 API_URL = "https://delightloop-gift-agent.onrender.com"
-#API_URL = "http://127.0.0.1:8000"
+
+
+def wake_backend():
+    """Ping backend and wait for it to wake up if Render spun it down."""
+    max_attempts = 6
+
+    for attempt in range(max_attempts):
+        try:
+            response = requests.get(f"{API_URL}/", timeout=15)
+            if response.status_code == 200:
+                return True
+        except Exception:
+            pass
+
+        if attempt < max_attempts - 1:
+            time.sleep(8)
+
+    return False
+
 
 st.set_page_config(
     page_title="DelightLoop Gift Agent",
     page_icon="🎁",
-    layout="wide"
+    layout="wide",
 )
 
-st.title("🎁 DelightLoop — Gift Recommendation Agent")
+st.title("🎁 DelightLoop - Gift Recommendation Agent")
 st.markdown("AI-powered personalised gift recommendations with human review")
 
-# ─────────────────────────────────────────
-# SIDEBAR — Load Contact
-# ─────────────────────────────────────────
-
-st.sidebar.header("📋 Contact Input")
+st.sidebar.header("Contact Input")
 
 input_method = st.sidebar.radio(
     "Input method",
-    ["Use sample contact", "Paste JSON"]
+    ["Use sample contact", "Paste JSON"],
 )
 
 sample_contact = {
@@ -37,30 +53,30 @@ sample_contact = {
             {
                 "title": "VP Sales",
                 "company": "Acme Corp",
-                "description": "Leading enterprise sales and GTM expansion."
+                "description": "Leading enterprise sales and GTM expansion.",
             }
         ],
         "recent_posts": [
             "Great sales teams are built on trust, coaching, and consistency.",
-            "Still recovering from yesterday's India vs Australia match. What a game!"
+            "Still recovering from yesterday's India vs Australia match. What a game!",
         ],
         "recent_comments": [
             "Cricket teaches leadership better than most management books."
         ],
-        "engaged_topics": ["Cricket", "Revenue leadership", "SaaS GTM"]
+        "engaged_topics": ["Cricket", "Revenue leadership", "SaaS GTM"],
     },
     "relationship_context": {
         "relationship_type": "Prospective customer",
         "last_interaction": "Positive discovery call last week",
-        "business_goal": "Nurture relationship before follow-up meeting"
+        "business_goal": "Nurture relationship before follow-up meeting",
     },
     "gift_context": {
         "occasion": "Post-meeting thank you",
         "budget_min": 3000,
         "budget_max": 5000,
         "currency": "INR",
-        "country": "India"
-    }
+        "country": "India",
+    },
 }
 
 if input_method == "Use sample contact":
@@ -69,37 +85,49 @@ if input_method == "Use sample contact":
 else:
     raw = st.sidebar.text_area(
         "Paste contact JSON here",
-        height=300
+        height=300,
     )
     try:
         contact_data = json.loads(raw) if raw else None
-    except:
+    except Exception:
         st.sidebar.error("Invalid JSON")
         contact_data = None
 
-# ─────────────────────────────────────────
-# MAIN — Run Agent
-# ─────────────────────────────────────────
-
 if contact_data:
-    st.markdown(f"### Contact: **{contact_data['name']}** — {contact_data['role']} at {contact_data['company']}")
+    st.markdown(
+        f"### Contact: **{contact_data['name']}** - "
+        f"{contact_data['role']} at {contact_data['company']}"
+    )
 
-    if st.button("🚀 Generate Gift Recommendations", type="primary"):
-        with st.spinner("Running AI workflow... this takes ~30 seconds"):
-            try:
-                response = requests.post(
-                    f"{API_URL}/recommend",
-                    json=contact_data
-                )
-                result = response.json()
-                st.session_state["result"] = result
-                st.session_state["run_id"] = result["run_id"]
-            except Exception as e:
-                st.error(f"Error: {e}")
+    if st.button("Generate Gift Recommendations", type="primary"):
+        with st.spinner(
+            "Waking up backend... this may take 30-60 seconds on Render free tier"
+        ):
+            backend_ready = wake_backend()
 
-# ─────────────────────────────────────────
-# RESULTS
-# ─────────────────────────────────────────
+        if not backend_ready:
+            st.warning("Backend is still waking up. Please try again in a few seconds.")
+        else:
+            with st.spinner("Running AI workflow... this takes around 30-90 seconds"):
+                try:
+                    response = requests.post(
+                        f"{API_URL}/recommend",
+                        json=contact_data,
+                        timeout=180,
+                    )
+
+                    if response.status_code != 200:
+                        st.error(
+                            f"Backend error {response.status_code}: "
+                            f"{response.text[:500]}"
+                        )
+                    else:
+                        result = response.json()
+                        st.session_state["result"] = result
+                        st.session_state["run_id"] = result["run_id"]
+
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
 if "result" in st.session_state:
     result = st.session_state["result"]
@@ -107,66 +135,72 @@ if "result" in st.session_state:
 
     st.divider()
 
-    # Profile Signals
-    st.subheader("🔍 Profile Signals Extracted")
+    st.subheader("Profile Signals Extracted")
     signals = result.get("profile_signals", {})
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("**✅ Strong Signals**")
-        for s in signals.get("strong_signals", []):
-            st.markdown(f"- {s}")
+        st.markdown("**Strong Signals**")
+        for signal in signals.get("strong_signals", []):
+            st.markdown(f"- {signal}")
 
     with col2:
-        st.markdown("**⚠️ Weak Signals**")
-        for s in signals.get("weak_signals", []):
-            st.markdown(f"- {s}")
+        st.markdown("**Weak Signals**")
+        for signal in signals.get("weak_signals", []):
+            st.markdown(f"- {signal}")
 
     with col3:
-        st.markdown("**🚫 Signals to Avoid**")
-        for s in signals.get("signals_to_avoid", []):
-            st.markdown(f"- {s}")
+        st.markdown("**Signals to Avoid**")
+        for signal in signals.get("signals_to_avoid", []):
+            st.markdown(f"- {signal}")
 
     st.divider()
 
-    # Learning context banner
     learning = result.get("learning_context", {})
     if learning.get("historical_feedback_applied"):
         st.info(
-            f"**Learning memory active** — {learning['feedback_entries_count']} past review(s) "
-            f"for this contact are shaping this run"
-            + (f" (last: {learning.get('last_action')})" if learning.get("last_action") else "")
+            f"Learning memory active - {learning['feedback_entries_count']} "
+            f"past review(s) for this contact are shaping this run"
+            + (
+                f" (last: {learning.get('last_action')})"
+                if learning.get("last_action")
+                else ""
+            )
         )
 
-    # Search Trace
-    st.subheader("🔎 Search Trace")
-    st.markdown(f"**Products considered:** {result['search_trace']['products_considered_count']}")
+    st.subheader("Search Trace")
+    search_trace = result.get("search_trace", {})
+    st.markdown(
+        f"**Products considered:** "
+        f"{search_trace.get('products_considered_count', 0)}"
+    )
     st.markdown("**Queries used:**")
-    for q in result["search_trace"]["queries_used"]:
-        st.markdown(f"- `{q}`")
+    for query in search_trace.get("queries_used", []):
+        st.markdown(f"- `{query}`")
 
     st.divider()
 
-    # Gift Recommendations
-    st.subheader("🎁 Top 3 Gift Recommendations")
+    st.subheader("Top 3 Gift Recommendations")
 
     if not result.get("recommended_gifts"):
         st.warning("No gift recommendations generated. Check errors below.")
     else:
         for gift in result["recommended_gifts"]:
             rank = gift["rank"]
-            medal = ["🥇", "🥈", "🥉"][rank - 1]
+            medal = ["1", "2", "3"][rank - 1] if rank in [1, 2, 3] else str(rank)
 
             with st.expander(
-                f"{medal} Rank #{rank}: {gift['gift_name']} — {gift['estimated_price']}",
-                expanded=True
+                f"Rank #{medal}: {gift['gift_name']} - {gift['estimated_price']}",
+                expanded=True,
             ):
                 col1, col2 = st.columns(2)
 
                 with col1:
                     st.markdown(f"**Store:** {gift['store']}")
                     st.markdown(f"**Price:** {gift['estimated_price']}")
-                    st.markdown(f"**Confidence:** {int(gift['confidence_score'] * 100)}%")
+                    st.markdown(
+                        f"**Confidence:** {int(gift['confidence_score'] * 100)}%"
+                    )
                     st.markdown(f"**Risk:** {gift['risk_level']}")
                     st.markdown(f"**URL:** [View Product]({gift['product_url']})")
 
@@ -182,13 +216,12 @@ if "result" in st.session_state:
 
                 if gift.get("assumptions"):
                     st.markdown("**Assumptions:**")
-                    for a in gift["assumptions"]:
-                        st.caption(f"• {a}")
+                    for assumption in gift["assumptions"]:
+                        st.caption(f"- {assumption}")
 
     st.divider()
 
-    # Human Review
-    st.subheader("👤 Human Review")
+    st.subheader("Human Review")
 
     current_status = result["human_review"]["status"]
     st.markdown(f"**Current Status:** `{current_status}`")
@@ -203,62 +236,111 @@ if "result" in st.session_state:
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            if st.button("✅ Approve", type="primary"):
-                requests.post(
-                    f"{API_URL}/review/{run_id}?action=approve",
-                    params={"notes": notes} if notes else {}
-                )
-                st.session_state["result"]["human_review"]["status"] = "approved"
-                st.success("Recommendations approved!")
-                st.rerun()
+            if st.button("Approve", type="primary"):
+                try:
+                    response = requests.post(
+                        f"{API_URL}/review/{run_id}?action=approve",
+                        params={"notes": notes} if notes else {},
+                        timeout=60,
+                    )
+                    if response.status_code != 200:
+                        st.error(
+                            f"Backend error {response.status_code}: "
+                            f"{response.text[:500]}"
+                        )
+                    else:
+                        st.session_state["result"]["human_review"][
+                            "status"
+                        ] = "approved"
+                        st.success("Recommendations approved!")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
         with col2:
-            if st.button("❌ Reject"):
-                requests.post(
-                    f"{API_URL}/review/{run_id}?action=reject",
-                    params={"notes": notes} if notes else {}
-                )
-                st.session_state["result"]["human_review"]["status"] = "rejected"
-                st.error("Recommendations rejected")
-                st.rerun()
+            if st.button("Reject"):
+                try:
+                    response = requests.post(
+                        f"{API_URL}/review/{run_id}?action=reject",
+                        params={"notes": notes} if notes else {},
+                        timeout=60,
+                    )
+                    if response.status_code != 200:
+                        st.error(
+                            f"Backend error {response.status_code}: "
+                            f"{response.text[:500]}"
+                        )
+                    else:
+                        st.session_state["result"]["human_review"][
+                            "status"
+                        ] = "rejected"
+                        st.error("Recommendations rejected")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
         with col3:
-            if st.button("🔄 Regenerate"):
+            if st.button("Regenerate"):
                 if not notes:
-                    st.warning("Add notes above to guide regeneration — otherwise results will be similar")
+                    st.warning(
+                        "Add notes above to guide regeneration, otherwise results "
+                        "may be similar."
+                    )
                 else:
                     with st.spinner("Regenerating with your feedback..."):
-                        r = requests.post(
-                            f"{API_URL}/review/{run_id}?action=regenerate",
-                            params={"notes": notes}
-                        )
-                        new_result = r.json()
-                        st.session_state["result"] = new_result
-                        st.session_state["run_id"] = new_result.get("run_id", run_id)
-                        st.success("Regenerated with feedback!")
-                        st.rerun()
+                        try:
+                            response = requests.post(
+                                f"{API_URL}/review/{run_id}?action=regenerate",
+                                params={"notes": notes},
+                                timeout=180,
+                            )
+                            if response.status_code != 200:
+                                st.error(
+                                    f"Backend error {response.status_code}: "
+                                    f"{response.text[:500]}"
+                                )
+                            else:
+                                new_result = response.json()
+                                st.session_state["result"] = new_result
+                                st.session_state["run_id"] = new_result.get(
+                                    "run_id", run_id
+                                )
+                                st.success("Regenerated with feedback!")
+                                st.rerun()
+                        except Exception as e:
+                            st.error(f"Error: {e}")
 
         with col4:
-            if st.button("💾 Save Notes") and notes:
-                requests.post(
-                    f"{API_URL}/review/{run_id}?action=edit",
-                    params={"notes": notes}
-                )
-                st.session_state["result"]["human_review"]["reviewer_notes"] = notes
-                st.success("Notes saved!")
+            if st.button("Save Notes") and notes:
+                try:
+                    response = requests.post(
+                        f"{API_URL}/review/{run_id}?action=edit",
+                        params={"notes": notes},
+                        timeout=60,
+                    )
+                    if response.status_code != 200:
+                        st.error(
+                            f"Backend error {response.status_code}: "
+                            f"{response.text[:500]}"
+                        )
+                    else:
+                        st.session_state["result"]["human_review"][
+                            "reviewer_notes"
+                        ] = notes
+                        st.success("Notes saved!")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
     elif current_status == "approved":
-        st.success("✅ These recommendations have been approved")
+        st.success("These recommendations have been approved")
 
     elif current_status == "rejected":
-        st.error("❌ These recommendations were rejected")
+        st.error("These recommendations were rejected")
 
-    # Errors
     if result.get("errors"):
-        with st.expander("⚠️ Errors"):
-            for e in result["errors"]:
-                st.error(e)
+        with st.expander("Errors"):
+            for error in result["errors"]:
+                st.error(error)
 
-    # Raw JSON toggle
-    with st.expander("🔧 View Raw JSON Output"):
+    with st.expander("View Raw JSON Output"):
         st.json(result)

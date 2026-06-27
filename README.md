@@ -94,11 +94,16 @@ Run the backend:
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Useful URLs:
+Useful URLs(local):
 
 - Health check: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 - API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
+Useful URLs(live):
+
+- Health check: [https://delightloop-gift-agent.onrender.com](https://delightloop-gift-agent.onrender.com)
+- API docs: [https://delightloop-gift-agent.onrender.com/docs](https://delightloop-gift-agent.onrender.com/docs)
+  
 Run the Streamlit UI:
 
 ```bash

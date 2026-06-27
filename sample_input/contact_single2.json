@@ -1,0 +1,51 @@
+{
+    "name": "Rahul Verma",
+    "role": "VP of Engineering",
+    "company": "ByteForge Solutions",
+    "location": "Pune, India",
+    "linkedin_profile": {
+      "headline": "VP Engineering | Cloud Infrastructure | Developer Experience | Engineering Leadership",
+      "about": "Building high-performing engineering organizations focused on scalable systems, developer productivity, and continuous learning.",
+      "experience": [
+        {
+          "title": "VP of Engineering",
+          "company": "ByteForge Solutions",
+          "description": "Leading engineering teams building cloud-native SaaS platforms."
+        },
+        {
+          "title": "Engineering Manager",
+          "company": "TechSphere",
+          "description": "Managed backend engineering teams and platform architecture."
+        }
+      ],
+      "recent_posts": [
+        "Developer experience is a competitive advantage.",
+        "Finally completed my first half marathon this weekend!",
+        "Mechanical keyboards are a rabbit hole I don't regret falling into."
+      ],
+      "recent_comments": [
+        "A standing desk made a huge difference for my productivity.",
+        "Nothing beats reading a good engineering book with a cup of coffee."
+      ],
+      "engaged_topics": [
+        "Software Engineering",
+        "Cloud Computing",
+        "Mechanical Keyboards",
+        "Running",
+        "Coffee",
+        "Developer Productivity"
+      ]
+    },
+    "relationship_context": {
+      "relationship_type": "Strategic customer",
+      "last_interaction": "Completed a successful product implementation and kickoff meeting.",
+      "business_goal": "Strengthen executive relationship ahead of annual partnership renewal."
+    },
+    "gift_context": {
+      "occasion": "Project completion",
+      "budget_min": 5000,
+      "budget_max": 9000,
+      "currency": "INR",
+      "country": "India"
+    }
+  }

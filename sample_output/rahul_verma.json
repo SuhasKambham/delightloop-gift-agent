@@ -1,0 +1,99 @@
+{
+    "run_id":"66a7390f-5c28-425b-8ca6-7936eb1e9d7e"
+    "contact_name":"Rahul Verma"
+    "profile_signals":{
+    "strong_signals":[
+    0:"Mechanical Keyboards"
+    1:"Coffee"
+    2:"Running"
+    3:"Developer Productivity"
+    4:"Engineering Books"
+    ]
+    "weak_signals":[
+    0:"Cloud Computing"
+    1:"Software Engineering"
+    ]
+    "signals_to_avoid":[
+    0:"Do not infer religion, politics, health, family status, or ethnicity"
+    ]
+    }
+    "search_trace":{
+    "queries_used":[
+    0:"premium mechanical keyboard accessories India 5000 to 9000 rupees Amazon Flipkart"
+    1:"Keychron wrist rest desk mat artisan keycaps India"
+    2:"specialty coffee makers India 5000 to 9000 rupees"
+    3:"gourmet coffee subscription boxes India premium coffee beans"
+    4:"Garmin Forerunner fitness tracker India 5000 to 9000 rupees"
+    5:"running accessories India armband headphones water bottle"
+    6:"developer productivity tools India 5000 to 9000 rupees"
+    7:"software development books India programming language guides"
+    8:"engineering books India 5000 to 9000 rupees"
+    9:"online courses on engineering topics India subscription"
+    ]
+    "products_considered_count":37
+    "search_retries":0
+    }
+    "recommended_gifts":[
+    0:{
+    "rank":1
+    "gift_name":"Razer Huntsman Mini Mercury Purple Switch Mechanical Gaming Keyboard | Ezpz Solutions"
+    "product_url":"https://www.google.com/search?tbm=shop&q=Razer+Huntsman+Mini+Mercury+Purple+Switch+Mechanical+Gaming+Keyboard+%7C+Ezpz+Solutions"
+    "store":"EzPz Solutions"
+    "estimated_price":"₹8,449"
+    "why_this_gift":"This premium mechanical keyboard is a great fit for Rahul, considering his strong interest in Mechanical Keyboards. It will enhance his productivity and provide a superior typing experience."
+    "personalisation_reasoning":"The product directly matches the 'Mechanical Keyboards' signal, which is a strong profile signal for Rahul. The gift category is 'premium mechanical keyboard accessories', which aligns with his interests."
+    "personalised_message":"Congratulations on the successful project completion, Rahul! As someone who appreciates Mechanical Keyboards, I thought you'd love this Razer Huntsman Mini Mercury Purple Switch Mechanical Gaming Keyboard to elevate your typing experience."
+    "confidence_score":0.9
+    "risk_level":"low"
+    "assumptions":[
+    0:"Rahul will appreciate a high-quality mechanical keyboard"
+    ]
+    }
+    1:{
+    "rank":2
+    "gift_name":"Black BAZA COFFEE Favourite-On-Repeat Coffee Subscription"
+    "product_url":"https://www.google.com/search?tbm=shop&q=Black+BAZA+COFFEE+Favourite-On-Repeat+Coffee+Subscription"
+    "store":"Black Baza Coffee Co."
+    "estimated_price":"₹7,300"
+    "why_this_gift":"This gourmet coffee subscription is a great fit for Rahul, considering his strong interest in Coffee. It will provide him with a constant supply of his favorite beverage."
+    "personalisation_reasoning":"The product directly matches the 'Coffee' signal, which is a strong profile signal for Rahul. The gift category is 'specialty coffee makers or gourmet coffee subscriptions', which aligns with his interests."
+    "personalised_message":"As we celebrate the project completion, I wanted to share a great cup of coffee with you, Rahul. This Black BAZA COFFEE Favourite-On-Repeat Coffee Subscription is a perfect way to enjoy your favorite coffee, every time."
+    "confidence_score":0.85
+    "risk_level":"low"
+    "assumptions":[
+    0:"Rahul will appreciate a gourmet coffee subscription"
+    ]
+    }
+    2:{
+    "rank":3
+    "gift_name":"Guide To Software Development"
+    "product_url":"https://www.google.com/search?tbm=shop&q=Guide+To+Software+Development"
+    "store":"MyPustak.com"
+    "estimated_price":"₹5,612"
+    "why_this_gift":"This book on software development is a great fit for Rahul, considering his interest in Developer Productivity. It will provide him with valuable insights and knowledge to enhance his skills."
+    "personalisation_reasoning":"The product directly matches the 'Developer Productivity' signal, which is a strong profile signal for Rahul. The gift category is 'productivity tools or software development books', which aligns with his interests."
+    "personalised_message":"Congratulations on the project completion, Rahul! As someone who values Developer Productivity, I thought you'd appreciate this 'Guide To Software Development' book to help you stay up-to-date with the latest trends and best practices."
+    "confidence_score":0.8
+    "risk_level":"low"
+    "assumptions":[
+    0:"Rahul will appreciate a book on software development"
+    ]
+    }
+    ]
+    "human_review":{
+    "status":"pending_review"
+    "available_actions":[
+    0:"approve"
+    1:"reject"
+    2:"edit"
+    3:"regenerate"
+    ]
+    "reviewer_notes":NULL
+    }
+    "learning_context":{
+    "historical_feedback_applied":false
+    "feedback_entries_count":0
+    }
+    "errors":[]
+    }
+    

@@ -1,50 +1,45 @@
 {
-  "name": "Aarav Mehta",
-  "role": "VP Sales",
-  "company": "Acme Corp",
-  "location": "Bengaluru, India",
+  "name": "Arjun Nair",
+  "role": "Chief Technology Officer",
+  "company": "QuantumScale AI",
+  "location": "Kochi, India",
   "linkedin_profile": {
-    "headline": "VP Sales at Acme Corp | Enterprise SaaS | GTM Leadership",
-    "about": "I enjoy building high-performing revenue teams and scaling SaaS businesses across India and Southeast Asia.",
+    "headline": "CTO | AI Infrastructure | Open Source | Photography",
+    "about": "Technology leader passionate about AI infrastructure, mechanical keyboards, espresso brewing, photography, and cycling. I spend weekends exploring nature with my camera.",
     "experience": [
       {
-        "title": "VP Sales",
-        "company": "Acme Corp",
-        "description": "Leading enterprise sales, strategic accounts, and GTM expansion."
-      },
-      {
-        "title": "Regional Sales Director",
-        "company": "Salesforce",
-        "description": "Managed enterprise accounts across BFSI and retail."
+        "title": "Chief Technology Officer",
+        "company": "QuantumScale AI",
+        "description": "Leading AI platform engineering and cloud infrastructure."
       }
     ],
     "recent_posts": [
-      "Great sales teams are built on trust, coaching, and consistency.",
-      "India's SaaS ecosystem is entering an exciting new phase.",
-      "Still recovering from yesterday's India vs Australia match. What a game!"
+      "Finally upgraded my espresso setup with a precision grinder.",
+      "Nothing beats sunrise landscape photography during weekend rides.",
+      "Open-source software is changing enterprise AI faster than ever."
     ],
     "recent_comments": [
-      "Completely agree — pipeline discipline matters more than heroic end-of-quarter selling.",
-      "Loved this take on customer-led growth.",
-      "Cricket teaches leadership better than most management books."
+      "Keychron just keeps making better keyboards.",
+      "Cycling clears my mind before difficult engineering decisions."
     ],
     "engaged_topics": [
-      "Cricket",
-      "Revenue leadership",
-      "SaaS GTM",
-      "Customer-led growth",
-      "Team building"
+      "Photography",
+      "Cycling",
+      "Mechanical Keyboards",
+      "Coffee",
+      "Artificial Intelligence",
+      "Open Source"
     ]
   },
   "relationship_context": {
-    "relationship_type": "Prospective customer",
-    "last_interaction": "Positive discovery call last week",
-    "business_goal": "Nurture relationship before follow-up meeting"
+    "relationship_type": "Long-term Enterprise Customer",
+    "last_interaction": "Successfully completed AI platform migration",
+    "business_goal": "Strengthen executive relationship before expansion proposal"
   },
   "gift_context": {
-    "occasion": "Post-meeting thank you",
-    "budget_min": 3000,
-    "budget_max": 5000,
+    "occasion": "Project Success Celebration",
+    "budget_min": 8000,
+    "budget_max": 15000,
     "currency": "INR",
     "country": "India"
   }

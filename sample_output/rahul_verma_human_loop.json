@@ -1,0 +1,101 @@
+{
+    "run_id":"66a7390f-5c28-425b-8ca6-7936eb1e9d7e"
+    "action":"regenerate"
+    "human_review":{
+    "status":"pending_review"
+    "available_actions":[
+    0:"approve"
+    1:"reject"
+    2:"edit"
+    3:"regenerate"
+    ]
+    "reviewer_notes":"suggest  Gifts something related to coffee"
+    }
+    "recommended_gifts":[
+    0:{
+    "rank":1
+    "gift_name":"Aeropress Go Coffee Maker"
+    "product_url":"https://www.amazon.in/s?k=Aeropress+Go+Coffee+Maker"
+    "store":"Amazon.in"
+    "estimated_price":"₹4,278"
+    "why_this_gift":"This gift fits Rahul Verma because it matches his strong signal for coffee and is a unique, high-quality coffee maker that will enhance his coffee experience."
+    "personalisation_reasoning":"The exact matched signal is 'Coffee' and the gift category is 'specialty coffee makers and coffee subscriptions'."
+    "personalised_message":"Congratulations on the successful project completion, Rahul. As a coffee connoisseur, I thought you'd appreciate the Aeropress Go Coffee Maker to elevate your coffee breaks. Wishing you many more productive days ahead."
+    "confidence_score":0.85
+    "risk_level":"low"
+    "assumptions":[
+    0:"Rahul Verma values unique coffee experiences"
+    ]
+    }
+    1:{
+    "rank":2
+    "gift_name":"Ant Esports MK1200 Wired Mechanical Mini Gaming Keyboard"
+    "product_url":"https://www.google.com/search?tbm=shop&q=Ant+Esports+MK1200+Wired+Mechanical+Mini+Gaming+Keyboard+%7C+RGB+Backlit+%26+60%25+Form+Factor+%7C+mini+keyboard+for+laptop"
+    "store":"DealClear"
+    "estimated_price":"₹3,149"
+    "why_this_gift":"This gift fits Rahul Verma because it matches his strong signal for mechanical keyboards and is a compact, high-performance keyboard that will enhance his coding experience."
+    "personalisation_reasoning":"The exact matched signal is 'Mechanical Keyboards' and the gift category is 'premium mechanical keyboard accessories'."
+    "personalised_message":"Hi Rahul, I hope you're enjoying the post-project completion phase. As someone who appreciates mechanical keyboards, I thought you'd like the Ant Esports MK1200, a compact and efficient keyboard for your coding needs."
+    "confidence_score":0.8
+    "risk_level":"low"
+    "assumptions":[
+    0:"Rahul Verma values compact and efficient keyboards"
+    ]
+    }
+    2:{
+    "rank":3
+    "gift_name":"Chemex Funnex Single Serve Pourover Brewer"
+    "product_url":"https://www.google.com/search?tbm=shop&q=Chemex+Funnex+Single+Serve+Pourover+Brewer"
+    "store":"Benki Brewing Tools"
+    "estimated_price":"₹4,740"
+    "why_this_gift":"This gift fits Rahul Verma because it matches his strong signal for coffee and is a unique, high-quality coffee brewer that will enhance his coffee experience."
+    "personalisation_reasoning":"The exact matched signal is 'Coffee' and the gift category is 'specialty coffee makers and coffee subscriptions'."
+    "personalised_message":"Hi Rahul, I wanted to thank you for your collaboration on the recent project. As a coffee enthusiast, I thought you'd appreciate the Chemex Funnex, a unique and high-quality coffee brewer for a perfect cup."
+    "confidence_score":0.8
+    "risk_level":"low"
+    "assumptions":[
+    0:"Rahul Verma values unique coffee brewing experiences"
+    ]
+    }
+    ]
+    "profile_signals":{
+    "strong_signals":[
+    0:"Mechanical Keyboards"
+    1:"Coffee"
+    2:"Running"
+    3:"Software Engineering"
+    4:"Developer Productivity"
+    ]
+    "weak_signals":[
+    0:"Gaming"
+    1:"Reading"
+    2:"Productivity Tools"
+    ]
+    "signals_to_avoid":[
+    0:"Do not infer religion, politics, health, family status, or ethnicity"
+    ]
+    }
+    "search_trace":{
+    "queries_used":[
+    0:"premium mechanical keyboard accessories India 5000 to 9000 rupees Amazon Flipkart"
+    1:"Keychron wrist rest desk mat artisan keycaps India"
+    2:"coffee subscription services India 5000 to 9000 rupees"
+    3:"specialty coffee makers India pour over chemex aeropress"
+    4:"running accessories India 5000 to 9000 rupees"
+    5:"fitness trackers India garmin fitbit"
+    6:"programming books India 5000 to 9000 rupees"
+    7:"developer productivity tools India"
+    8:"productivity software India 5000 to 9000 rupees"
+    9:"coding accessories India"
+    ]
+    "products_considered_count":32
+    "search_retries":0
+    }
+    "learning_context":{
+    "historical_feedback_applied":true
+    "feedback_entries_count":1
+    "last_action":"regenerate"
+    "last_notes":"suggest  Gifts something related to coffee"
+    }
+    "errors":[]
+    }

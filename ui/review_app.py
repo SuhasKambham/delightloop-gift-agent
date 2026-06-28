@@ -57,12 +57,8 @@ sample_contact = {
       "Keychron keyboards are excellent for long coding sessions."
     ],
     "engaged_topics": [
-      "Software Engineering",
-      "Cloud Computing",
       "Mechanical Keyboards",
-      "Running",
       "Coffee",
-      "Developer Productivity",
       "Engineering Leadership"
     ]
   },

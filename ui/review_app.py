@@ -59,7 +59,8 @@ sample_contact = {
     "engaged_topics": [
       "Mechanical Keyboards",
       "Coffee",
-      "Engineering Leadership"
+      "Engineering Leadership",
+      "Running"
     ]
   },
   "relationship_context": {

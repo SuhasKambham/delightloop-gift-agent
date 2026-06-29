@@ -99,8 +99,8 @@ if contact_data:
     st.markdown(f"### Contact: **{contact_data['name']}** — {contact_data['role']} at {contact_data['company']}")
 
     if st.button("🚀 Generate Gift Recommendations", type="primary"):
-    with st.spinner("Waking backend..."):
-        backend_ready = wake_backend()
+        with st.spinner("Waking backend..."):
+            backend_ready = wake_backend()
 
         if not backend_ready:
             st.error("Backend did not wake up in time. Please try again.")

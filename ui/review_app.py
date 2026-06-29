@@ -99,9 +99,12 @@ if contact_data:
     st.markdown(f"### Contact: **{contact_data['name']}** — {contact_data['role']} at {contact_data['company']}")
 
     if st.button("🚀 Generate Gift Recommendations", type="primary"):
-        with st.spinner("Waking backend..."):
-            wake_backend()
+    with st.spinner("Waking backend..."):
+        backend_ready = wake_backend()
 
+    if not backend_ready:
+        st.error("Backend did not wake up in time. Please try again.")
+    else:
         with st.spinner("Running AI workflow..."):
             try:
                 response = requests.post(
@@ -117,6 +120,7 @@ if contact_data:
                     st.session_state["result"] = result
                     st.session_state["run_id"] = result["run_id"]
             except Exception as e:
+                st.error(f"Error: {e}")
                 st.error(f"Error: {e}")
 
 # ─────────────────────────────────────────

@@ -1,23 +1,9 @@
-import json
-import time
-
-import requests
 import streamlit as st
+import requests
+import json
 
 API_URL = "https://delightloop-gift-agent.onrender.com"
-
-
-def wake_backend():
-    for _ in range(5):
-        try:
-            r = requests.get(f"{API_URL}/", timeout=10)
-            if r.status_code == 200:
-                return True
-        except Exception:
-            pass
-        time.sleep(5)
-    return False
-
+#API_URL = "http://127.0.0.1:8000"
 
 st.set_page_config(
     page_title="DelightLoop Gift Agent",
@@ -40,41 +26,54 @@ input_method = st.sidebar.radio(
 )
 
 sample_contact = {
-    "name": "Aarav Mehta",
-    "role": "VP Sales",
-    "company": "Acme Corp",
-    "location": "Bengaluru, India",
-    "linkedin_profile": {
-        "headline": "VP Sales at Acme Corp | Enterprise SaaS | GTM Leadership",
-        "about": "I enjoy building high-performing revenue teams and scaling SaaS businesses.",
-        "experience": [
-            {
-                "title": "VP Sales",
-                "company": "Acme Corp",
-                "description": "Leading enterprise sales and GTM expansion."
-            }
-        ],
-        "recent_posts": [
-            "Great sales teams are built on trust, coaching, and consistency.",
-            "Still recovering from yesterday's India vs Australia match. What a game!"
-        ],
-        "recent_comments": [
-            "Cricket teaches leadership better than most management books."
-        ],
-        "engaged_topics": ["Cricket", "Revenue leadership", "SaaS GTM"]
-    },
-    "relationship_context": {
-        "relationship_type": "Prospective customer",
-        "last_interaction": "Positive discovery call last week",
-        "business_goal": "Nurture relationship before follow-up meeting"
-    },
-    "gift_context": {
-        "occasion": "Post-meeting thank you",
-        "budget_min": 3000,
-        "budget_max": 5000,
-        "currency": "INR",
-        "country": "India"
-    }
+  "name": "Rahul Verma",
+  "role": "VP of Engineering",
+  "company": "ByteForge Solutions",
+  "location": "Pune, India",
+  "linkedin_profile": {
+    "headline": "VP Engineering | Cloud Infrastructure | Developer Experience | Engineering Leadership",
+    "about": "Building high-performing engineering organizations focused on scalable systems, developer productivity, and continuous learning. Outside work, I enjoy specialty coffee, mechanical keyboards, running, and reading engineering leadership books.",
+    "experience": [
+      {
+        "title": "VP of Engineering",
+        "company": "ByteForge Solutions",
+        "description": "Leading engineering teams building cloud-native SaaS platforms."
+      },
+      {
+        "title": "Engineering Manager",
+        "company": "TechSphere",
+        "description": "Managed backend engineering teams and platform architecture."
+      }
+    ],
+    "recent_posts": [
+      "Developer experience is a competitive advantage.",
+      "Finally completed my first half marathon this weekend!",
+      "Mechanical keyboards are a rabbit hole I don't regret falling into.",
+      "Nothing beats a freshly brewed cup of coffee before a deep architecture review."
+    ],
+    "recent_comments": [
+      "A standing desk made a huge difference for my productivity.",
+      "Nothing beats reading a good engineering leadership book with a cup of coffee.",
+      "Keychron keyboards are excellent for long coding sessions."
+    ],
+    "engaged_topics": [
+      "Mechanical Keyboards",
+      "Coffee",
+      "Engineering Leadership"
+    ]
+  },
+  "relationship_context": {
+    "relationship_type": "Strategic customer",
+    "last_interaction": "Completed a successful product implementation and kickoff meeting.",
+    "business_goal": "Strengthen executive relationship ahead of annual partnership renewal."
+  },
+  "gift_context": {
+    "occasion": "Project completion",
+    "budget_min": 5000,
+    "budget_max": 9000,
+    "currency": "INR",
+    "country": "India"
+  }
 }
 
 if input_method == "Use sample contact":
@@ -99,29 +98,17 @@ if contact_data:
     st.markdown(f"### Contact: **{contact_data['name']}** — {contact_data['role']} at {contact_data['company']}")
 
     if st.button("🚀 Generate Gift Recommendations", type="primary"):
-        with st.spinner("Waking backend..."):
-            backend_ready = wake_backend()
-
-        if not backend_ready:
-            st.error("Backend did not wake up in time. Please try again.")
-        else:
-            with st.spinner("Running AI workflow..."):
-                try:
-                    response = requests.post(
-                        f"{API_URL}/recommend",
-                        json=contact_data,
-                        timeout=120
-                    )
-    
-                    if response.status_code != 200:
-                        st.error(f"Backend error {response.status_code}: {response.text[:500]}")
-                    else:
-                        result = response.json()
-                        st.session_state["result"] = result
-                        st.session_state["run_id"] = result["run_id"]
-                except Exception as e:
-                    st.error(f"Error: {e}")
-                    st.error(f"Error: {e}")
+        with st.spinner("Running AI workflow... this takes ~30 seconds"):
+            try:
+                response = requests.post(
+                    f"{API_URL}/recommend",
+                    json=contact_data
+                )
+                result = response.json()
+                st.session_state["result"] = result
+                st.session_state["run_id"] = result["run_id"]
+            except Exception as e:
+                st.error(f"Error: {e}")
 
 # ─────────────────────────────────────────
 # RESULTS
@@ -230,37 +217,23 @@ if "result" in st.session_state:
 
         with col1:
             if st.button("✅ Approve", type="primary"):
-                try:
-                    response = requests.post(
-                        f"{API_URL}/review/{run_id}?action=approve",
-                        params={"notes": notes} if notes else {},
-                        timeout=60
-                    )
-                    if response.status_code != 200:
-                        st.error(f"Backend error {response.status_code}: {response.text[:500]}")
-                    else:
-                        st.session_state["result"]["human_review"]["status"] = "approved"
-                        st.success("Recommendations approved!")
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                requests.post(
+                    f"{API_URL}/review/{run_id}?action=approve",
+                    params={"notes": notes} if notes else {}
+                )
+                st.session_state["result"]["human_review"]["status"] = "approved"
+                st.success("Recommendations approved!")
+                st.rerun()
 
         with col2:
             if st.button("❌ Reject"):
-                try:
-                    response = requests.post(
-                        f"{API_URL}/review/{run_id}?action=reject",
-                        params={"notes": notes} if notes else {},
-                        timeout=60
-                    )
-                    if response.status_code != 200:
-                        st.error(f"Backend error {response.status_code}: {response.text[:500]}")
-                    else:
-                        st.session_state["result"]["human_review"]["status"] = "rejected"
-                        st.error("Recommendations rejected")
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                requests.post(
+                    f"{API_URL}/review/{run_id}?action=reject",
+                    params={"notes": notes} if notes else {}
+                )
+                st.session_state["result"]["human_review"]["status"] = "rejected"
+                st.error("Recommendations rejected")
+                st.rerun()
 
         with col3:
             if st.button("🔄 Regenerate"):
@@ -268,38 +241,24 @@ if "result" in st.session_state:
                     st.warning("Add notes above to guide regeneration — otherwise results will be similar")
                 else:
                     with st.spinner("Regenerating with your feedback..."):
-                        try:
-                            r = requests.post(
-                                f"{API_URL}/review/{run_id}?action=regenerate",
-                                params={"notes": notes},
-                                timeout=180
-                            )
-                            if r.status_code != 200:
-                                st.error(f"Backend error {r.status_code}: {r.text[:500]}")
-                            else:
-                                new_result = r.json()
-                                st.session_state["result"] = new_result
-                                st.session_state["run_id"] = new_result.get("run_id", run_id)
-                                st.success("Regenerated with feedback!")
-                                st.rerun()
-                        except Exception as e:
-                            st.error(f"Error: {e}")
+                        r = requests.post(
+                            f"{API_URL}/review/{run_id}?action=regenerate",
+                            params={"notes": notes}
+                        )
+                        new_result = r.json()
+                        st.session_state["result"] = new_result
+                        st.session_state["run_id"] = new_result.get("run_id", run_id)
+                        st.success("Regenerated with feedback!")
+                        st.rerun()
 
         with col4:
             if st.button("💾 Save Notes") and notes:
-                try:
-                    response = requests.post(
-                        f"{API_URL}/review/{run_id}?action=edit",
-                        params={"notes": notes},
-                        timeout=60
-                    )
-                    if response.status_code != 200:
-                        st.error(f"Backend error {response.status_code}: {response.text[:500]}")
-                    else:
-                        st.session_state["result"]["human_review"]["reviewer_notes"] = notes
-                        st.success("Notes saved!")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                requests.post(
+                    f"{API_URL}/review/{run_id}?action=edit",
+                    params={"notes": notes}
+                )
+                st.session_state["result"]["human_review"]["reviewer_notes"] = notes
+                st.success("Notes saved!")
 
     elif current_status == "approved":
         st.success("✅ These recommendations have been approved")

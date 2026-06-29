@@ -102,26 +102,26 @@ if contact_data:
     with st.spinner("Waking backend..."):
         backend_ready = wake_backend()
 
-    if not backend_ready:
-        st.error("Backend did not wake up in time. Please try again.")
-    else:
-        with st.spinner("Running AI workflow..."):
-            try:
-                response = requests.post(
-                    f"{API_URL}/recommend",
-                    json=contact_data,
-                    timeout=120
-                )
-
-                if response.status_code != 200:
-                    st.error(f"Backend error {response.status_code}: {response.text[:500]}")
-                else:
-                    result = response.json()
-                    st.session_state["result"] = result
-                    st.session_state["run_id"] = result["run_id"]
-            except Exception as e:
-                st.error(f"Error: {e}")
-                st.error(f"Error: {e}")
+        if not backend_ready:
+            st.error("Backend did not wake up in time. Please try again.")
+        else:
+            with st.spinner("Running AI workflow..."):
+                try:
+                    response = requests.post(
+                        f"{API_URL}/recommend",
+                        json=contact_data,
+                        timeout=120
+                    )
+    
+                    if response.status_code != 200:
+                        st.error(f"Backend error {response.status_code}: {response.text[:500]}")
+                    else:
+                        result = response.json()
+                        st.session_state["result"] = result
+                        st.session_state["run_id"] = result["run_id"]
+                except Exception as e:
+                    st.error(f"Error: {e}")
+                    st.error(f"Error: {e}")
 
 # ─────────────────────────────────────────
 # RESULTS
